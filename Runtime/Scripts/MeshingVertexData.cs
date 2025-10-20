@@ -1,6 +1,5 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -8,31 +7,16 @@ using UnityEngine.Rendering;
 namespace Spellbound.MarchingCubes {
     /// <summary>
     /// A struct to hold the data every vertex should have
-    /// I just copied this from the open source code
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
     public struct MeshingVertexData {
-        /// <summary>
-        /// The vertex's local position
-        /// </summary>
-        public float3 position;
+        public float3 Position;
+        public float3 Normal;
+        public Color32 Color;
 
-        /// <summary>
-        /// The vertex's normal
-        /// </summary>
-        public float3 normal;
-
-        public Color32 color;
-
-        /// <summary>
-        /// The constructor to create a <see cref="MeshingVertexData" />
-        /// </summary>
-        /// <param name="position">The vertex's local position</param>
-        /// <param name="normal">The vertex's normal</param>
         public MeshingVertexData(float3 position, float3 normal, Color32 color) {
-            this.position = position;
-            this.normal = normal;
-            this.color = color;
+            Position = position;
+            Normal = normal;
+            Color = color;
         }
 
         /// <summary>

@@ -9,8 +9,11 @@ using UnityEngine;
 using McHelper = Spellbound.MarchingCubes.McStaticHelper;
 
 namespace Spellbound.MarchingCubes {
+    /// <summary>
+    /// Manager for handling the LODs and cached Dense/Unpacked Voxel Arrays for Marching Cubes.
+    /// </summary>
     public class MarchingCubesManager : MonoBehaviour {
-        public BlobAssetReference<MCTablesBlobAsset> McTablesBlob;
+        public BlobAssetReference<McTablesBlobAsset> McTablesBlob;
         [SerializeField] public GameObject octreePrefab;
         [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
 
@@ -24,80 +27,14 @@ namespace Spellbound.MarchingCubes {
 
         private const int MaxEntries = 10;
 
-        private NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
-        private Dictionary<Vector3Int, int> _keyToSlot = new();
-        private Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
-        private Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
-
-        public void AllocateDenseBuffers(int arraySize) {
-            for (var i = 0; i < MaxEntries; i++)
-                _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
-        }
-
-        public NativeArray<VoxelData> GetOrCreate(
-            Vector3Int coord, IVoxelTerrainChunk chunk,
-            NativeList<SparseVoxelData> sparseData) {
-            if (_keyToSlot.TryGetValue(coord, out var existingSlot)) return _denseBuffers[existingSlot];
-
-            int slot;
-
-            if (_keyToSlot.Count < MaxEntries)
-                slot = _keyToSlot.Count;
-            else
-                slot = EvictDenseBuffer();
-
-
-            var buffer = _denseBuffers[slot];
-
-            var unpackJob = new SparseToDenseVoxelDataJob {
-                Voxels = buffer,
-                SparseVoxels = sparseData
-            };
-            var jobHandle = unpackJob.Schedule(McHelper.ChunkDataWidthSize, 1);
-            jobHandle.Complete();
-
-            _keyToSlot[coord] = slot;
-            _slotToKey[slot] = coord;
-            _slotEvictionQueue.Enqueue((slot, chunk));
-
-            return buffer;
-        }
-
-        private int EvictDenseBuffer() {
-            // Evict the oldest
-            var tuple = _slotEvictionQueue.Dequeue();
-            var oldKey = _slotToKey[tuple.Item1];
-            _keyToSlot.Remove(oldKey);
-
-            if (tuple.Item2 == null || !tuple.Item2.IsDirty()) return tuple.Item1;
-
-            var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
-
-            var packJob = new DenseToSparseVoxelDataJob {
-                Voxels = _denseBuffers[tuple.Item1],
-                SparseVoxels = sparseData
-            };
-            var jobHandle = packJob.Schedule();
-            jobHandle.Complete();
-
-            tuple.Item2.UpdateSparseVoxels(sparseData);
-            sparseData.Dispose();
-
-            return tuple.Item1;
-        }
-
-        public void DisposeDenseBuffers() {
-            for (var i = 0; i < MaxEntries; i++)
-                if (_denseBuffers[i].IsCreated)
-                    _denseBuffers[i].Dispose();
-
-            _keyToSlot.Clear();
-            _slotEvictionQueue.Clear();
-        }
+        private readonly NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
+        private readonly Dictionary<Vector3Int, int> _keyToSlot = new();
+        private readonly Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
+        private readonly Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
 
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
-            McTablesBlob = MCTablesBlobCreator.CreateMCTablesBlobAsset();
+            McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
             AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
         }
 
@@ -122,6 +59,67 @@ namespace Spellbound.MarchingCubes {
                 McTablesBlob.Dispose();
 
             DisposeDenseBuffers();
+        }
+
+        private void AllocateDenseBuffers(int arraySize) {
+            for (var i = 0; i < MaxEntries; i++)
+                _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
+        }
+
+        public NativeArray<VoxelData> GetOrCreate(
+            Vector3Int coord, IVoxelTerrainChunk chunk,
+            NativeList<SparseVoxelData> sparseData) {
+            if (_keyToSlot.TryGetValue(coord, out var existingSlot)) return _denseBuffers[existingSlot];
+
+            var slot = _keyToSlot.Count < MaxEntries ? _keyToSlot.Count : EvictDenseBuffer();
+
+            var buffer = _denseBuffers[slot];
+
+            var unpackJob = new SparseToDenseVoxelDataJob {
+                Voxels = buffer,
+                SparseVoxels = sparseData
+            };
+            var jobHandle = unpackJob.Schedule(McHelper.ChunkDataWidthSize, 1);
+            jobHandle.Complete();
+
+            _keyToSlot[coord] = slot;
+            _slotToKey[slot] = coord;
+            _slotEvictionQueue.Enqueue((slot, chunk));
+
+            return buffer;
+        }
+
+        private int EvictDenseBuffer() {
+            var indexAndChunkTuple = _slotEvictionQueue.Dequeue();
+            var oldKey = _slotToKey[indexAndChunkTuple.Item1];
+            _keyToSlot.Remove(oldKey);
+
+            if (indexAndChunkTuple.Item2 == null || !indexAndChunkTuple.Item2.IsDirty())
+                return indexAndChunkTuple.Item1;
+
+            var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
+
+            var packJob = new DenseToSparseVoxelDataJob {
+                Voxels = _denseBuffers[indexAndChunkTuple.Item1],
+                SparseVoxels = sparseData
+            };
+            var jobHandle = packJob.Schedule();
+            jobHandle.Complete();
+
+            indexAndChunkTuple.Item2.UpdateSparseVoxels(sparseData);
+            sparseData.Dispose();
+
+            return indexAndChunkTuple.Item1;
+        }
+
+        private void DisposeDenseBuffers() {
+            for (var i = 0; i < MaxEntries; i++) {
+                if (_denseBuffers[i].IsCreated)
+                    _denseBuffers[i].Dispose();
+            }
+
+            _keyToSlot.Clear();
+            _slotEvictionQueue.Clear();
         }
     }
 }

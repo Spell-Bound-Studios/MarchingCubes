@@ -15,23 +15,22 @@ namespace Spellbound.MarchingCubes {
     /// Either it has 8 children, or it has an Octree leaf (representing actual terrain).
     /// </summary>
     public class OctreeNode : IDisposable {
-        private OctreeNode[] _children = null;
-        public bool IsLeaf => _children == null;
-        private GameObject _leafGO = null;
-        private GameObject _transitionGO;
+        private OctreeNode[] _children;
+        private bool IsLeaf => _children == null;
+        private GameObject _leafGo;
+        private GameObject _transitionGo;
         private int _activeTransitionMask;
-        private Mesh _cachedTransitionMesh;
         private NativeList<MeshingVertexData> _transitionVertices;
         private NativeList<int> _transitionTriangles;
         private NativeArray<int2> _transitionRanges;
         private Vector3Int _localPosition;
-        private int _lod;
+        private readonly int _lod;
         private Bounds _bounds;
-        private IVoxelTerrainChunk _chunk;
-        private MarchingCubesManager _mcManager;
-        private NativeArray<VoxelData> _voxelData => _chunk.GetVoxelArray();
+        private readonly IVoxelTerrainChunk _chunk;
+        private readonly MarchingCubesManager _mcManager;
+        private NativeArray<VoxelData> VoxelData => _chunk.GetVoxelArray();
 
-        private Vector3Int _worldPosition => _chunk.GetChunkCoord() * SpellboundStaticHelper.ChunkSize;
+        private Vector3Int WorldPosition => _chunk.GetChunkCoord() * SpellboundStaticHelper.ChunkSize;
 
         public OctreeNode(Vector3Int localPosition, int lod, IVoxelTerrainChunk chunk) {
             _localPosition = localPosition;
@@ -40,7 +39,7 @@ namespace Spellbound.MarchingCubes {
 
             var octreeSize = McStaticHelper.CubesMarchedPerOctreeLeaf * math.pow(2, _lod) + 2;
 
-            _bounds = new Bounds(_worldPosition + _localPosition + Vector3.one * octreeSize / 2,
+            _bounds = new Bounds(WorldPosition + _localPosition + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
 
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
@@ -55,7 +54,8 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            for (var i = 0; i < _children.Length; ++i) _children[i].ValidateOctreeEdits(bounds);
+            foreach (var child in _children)
+                child.ValidateOctreeEdits(bounds);
         }
 
         private (int, int) GetLodRange(Vector3 octreePos, Vector3 playerPos) {
@@ -67,7 +67,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
-            var octreePos = _worldPosition
+            var octreePos = WorldPosition
                             + _localPosition
                             + Vector3.one * (McStaticHelper.CubesMarchedPerOctreeLeaf << (_lod - 1));
             var (coarsestLod, finestLod) = GetLodRange(octreePos, playerPosition);
@@ -80,7 +80,7 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            if (_lod == coarsestLod && IsLeaf && _leafGO == null) {
+            if (_lod == coarsestLod && IsLeaf && _leafGo == null) {
                 MakeLeaf();
 
                 return;
@@ -92,13 +92,14 @@ namespace Spellbound.MarchingCubes {
             if (IsLeaf)
                 return;
 
-            for (var i = 0; i < _children.Length; ++i) _children[i].ValidateOctreeLods(playerPosition);
+            foreach (var child in _children)
+                child.ValidateOctreeLods(playerPosition);
         }
 
         private void MarchAndUpdateLeaf() {
             var marchingCubeJob = new MarchingCubeJob {
                 Tables = _mcManager.McTablesBlob,
-                VoxelArray = _voxelData,
+                VoxelArray = VoxelData,
 
                 // New Allocation - Ensure this is disposed of after the job.
                 Vertices = new NativeList<MeshingVertexData>(Allocator.TempJob),
@@ -117,7 +118,7 @@ namespace Spellbound.MarchingCubes {
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
                     Tables = _mcManager.McTablesBlob,
-                    VoxelArray = _voxelData,
+                    VoxelArray = VoxelData,
 
                     // New Allocation - Ensure this is disposed of after the job.
                     TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.TempJob),
@@ -138,9 +139,7 @@ namespace Spellbound.MarchingCubes {
                 UpdateTransition(_activeTransitionMask);
                 transitionMarchingCubeJob.TransitionMeshingVertexData.Dispose();
                 transitionMarchingCubeJob.TransitionTriangles.Dispose();
-                ;
                 transitionMarchingCubeJob.TransitionRanges.Dispose();
-                ;
             }
         }
 
@@ -155,7 +154,8 @@ namespace Spellbound.MarchingCubes {
                 return;
 
             if (!IsLeaf) {
-                for (var i = 0; i < _children.Length; ++i) _children[i].ValidateTransition(neighbor, facePos, faceMask);
+                foreach (var child in _children)
+                    child.ValidateTransition(neighbor, facePos, faceMask);
 
                 return;
             }
@@ -178,7 +178,7 @@ namespace Spellbound.MarchingCubes {
             neighbor.UpdateTransitionMask(faceMask, true);
         }
 
-        public void UpdateTransitionMask(McStaticHelper.TransitionFaceMask mask, bool isSetter) {
+        private void UpdateTransitionMask(McStaticHelper.TransitionFaceMask mask, bool isSetter) {
             var newTransitionMask = _activeTransitionMask;
 
             if (isSetter)
@@ -219,11 +219,11 @@ namespace Spellbound.MarchingCubes {
             if (!IsLeaf || _children != null)
                 return;
 
-            if (_leafGO != null) {
-                GameObject.Destroy(_leafGO);
-                _leafGO = null;
-                GameObject.Destroy(_transitionGO);
-                _transitionGO = null;
+            if (_leafGo != null) {
+                Object.Destroy(_leafGo);
+                _leafGo = null;
+                Object.Destroy(_transitionGo);
+                _transitionGo = null;
             }
 
             _children = new OctreeNode[8];
@@ -242,7 +242,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void MakeLeaf() {
-            if (_leafGO != null) return;
+            if (_leafGo != null) return;
 
             if (!IsLeaf) {
                 for (var i = 0; i < 8; i++) _children[i]?.Dispose();
@@ -256,7 +256,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void UpdateLeaf() {
-            if (_leafGO == null) return;
+            if (_leafGo == null) return;
 
             MarchAndUpdateLeaf();
         }
@@ -267,11 +267,11 @@ namespace Spellbound.MarchingCubes {
                 _children = null;
             }
 
-            if (_leafGO != null) {
-                GameObject.Destroy(_leafGO);
-                _leafGO = null;
-                GameObject.Destroy(_transitionGO);
-                _transitionGO = null;
+            if (_leafGo != null) {
+                Object.Destroy(_leafGo);
+                _leafGo = null;
+                Object.Destroy(_transitionGo);
+                _transitionGo = null;
             }
 
             if (_transitionVertices.IsCreated)
@@ -288,8 +288,8 @@ namespace Spellbound.MarchingCubes {
             if (triangles.Length < 3 || vertices.Length < 3)
                 return;
 
-            var meshFilter = _leafGO.GetComponent<MeshFilter>();
-            var meshCollider = _leafGO.GetComponent<MeshCollider>();
+            var meshFilter = _leafGo.GetComponent<MeshFilter>();
+            var meshCollider = _leafGo.GetComponent<MeshCollider>();
 
             var mesh = new Mesh();
 
@@ -325,14 +325,14 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BuildLeaf() {
-            _leafGO = Object.Instantiate(
+            _leafGo = Object.Instantiate(
                 _mcManager.octreePrefab,
-                _worldPosition,
+                WorldPosition,
                 Quaternion.identity,
                 _chunk.GetChunkTransform()
             );
 
-            _leafGO.name = $"LeafSize {McStaticHelper.CubesMarchedPerOctreeLeaf << _lod} " +
+            _leafGo.name = $"LeafSize {McStaticHelper.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
 
             if (!_transitionVertices.IsCreated)
@@ -344,26 +344,25 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BuildTransitions() {
-            _transitionGO = Object.Instantiate(
+            _transitionGo = Object.Instantiate(
                 _mcManager.octreePrefab,
-                _worldPosition,
+                WorldPosition,
                 Quaternion.identity,
                 _chunk.GetChunkTransform()
             );
 
-            _transitionGO.name = "transition";
-            _transitionGO.transform.parent = _leafGO.transform;
+            _transitionGo.name = "transition";
+            _transitionGo.transform.parent = _leafGo.transform;
         }
 
         private void UpdateTransition(int transitionMask) {
             if (!_transitionVertices.IsCreated)
                 return;
 
-            var meshFilter = _transitionGO.GetComponent<MeshFilter>();
+            var meshFilter = _transitionGo.GetComponent<MeshFilter>();
 
             if (transitionMask == 0) {
-                // Clear the mesh to hide transitions
-                meshFilter.mesh = null; // clear mesh
+                meshFilter.mesh = null;
 
                 return;
             }
@@ -374,8 +373,7 @@ namespace Spellbound.MarchingCubes {
             if (triangles.Length < 3 || _transitionVertices.Length < 3)
                 return;
 
-            meshFilter = _transitionGO.GetComponent<MeshFilter>();
-            //var meshCollider = _transitionGO.GetComponent<MeshCollider>();
+            meshFilter = _transitionGo.GetComponent<MeshFilter>();
 
             var mesh = new Mesh();
 

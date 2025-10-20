@@ -5,6 +5,9 @@ using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
+    /// <summary>
+    /// Defines the contract that a chunk must fulfill to integrate with the Marching Cubes Voxel System.
+    /// </summary>
     public interface IVoxelTerrainChunk {
         public NativeArray<VoxelData> GetVoxelArray();
 

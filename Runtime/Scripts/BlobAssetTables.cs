@@ -6,7 +6,10 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public struct MCTablesBlobAsset {
+    /// <summary>
+    /// Blob Asset to hold Marching Cubes Tables.
+    /// </summary>
+    public struct McTablesBlobAsset {
         // Mapping of Voxel.matIndex to Colors for vertexColors
         public BlobArray<Color32> ColorsByIndex;
 
@@ -28,10 +31,10 @@ namespace Spellbound.MarchingCubes {
         public BlobArray<BlobArray<ushort>> TransitionVertexData;
     }
 
-    public class MCTablesBlobCreator {
-        public static BlobAssetReference<MCTablesBlobAsset> CreateMCTablesBlobAsset() {
+    public static class McTablesBlobCreator {
+        public static BlobAssetReference<McTablesBlobAsset> CreateMcTablesBlobAsset() {
             var builder = new BlobBuilder(Allocator.Temp);
-            ref var tables = ref builder.ConstructRoot<MCTablesBlobAsset>();
+            ref var tables = ref builder.ConstructRoot<McTablesBlobAsset>();
 
             // Colors
             Color32[] colors = {
@@ -44,7 +47,7 @@ namespace Spellbound.MarchingCubes {
 
             for (var i = 0; i < colors.Length; i++) colorsByIndexArrayBuilder[i] = colors[i];
 
-            // RegularConrnerOffsets
+            // RegularCornerOffsets
             int3[] regularCornerOffset = {
                 new(0, 0, 0), // 0         6-------7
                 new(1, 0, 0), // 1        /|      /|
@@ -61,7 +64,7 @@ namespace Spellbound.MarchingCubes {
 
             for (var i = 0; i < regularCornerOffset.Length; i++) cornerOffsetArrayBuilder[i] = regularCornerOffset[i];
 
-            // RegularConrnerOffsets
+            // RegularCornerOffsets
             byte[] regularCellClass = {
                 0x00, 0x01, 0x01, 0x03, 0x01, 0x03, 0x02, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x04, 0x03,
                 0x01, 0x03, 0x02, 0x04, 0x02, 0x04, 0x06, 0x0C, 0x02, 0x05, 0x05, 0x0B, 0x05, 0x0A, 0x07, 0x04,
@@ -87,7 +90,6 @@ namespace Spellbound.MarchingCubes {
             for (var i = 0; i < regularCellClass.Length; i++) cellClassArrayBuilder[i] = regularCellClass[i];
 
             // GeometryCount, VertexCount, TriangleCount
-            // This was formerly part of RegularCellData
             byte[] geometryCount = {
                 0x00, 0x31, 0x62, 0x42, 0x53, 0x73, 0x93, 0x84, 0x84, 0xC4, 0x64, 0x64, 0x64, 0x64, 0x75, 0x95
             };
@@ -103,7 +105,6 @@ namespace Spellbound.MarchingCubes {
             for (var i = 0; i < geometryCount.Length; i++) triangleCountArrayBuilder[i] = (geometryCount[i] & 0x0F) * 3;
 
             // Indices.
-            // This was formerly part of RegularCellData.
             byte[][] indices = {
                 new byte[] { },
                 new byte[] { 0, 1, 2 },
@@ -471,7 +472,6 @@ namespace Spellbound.MarchingCubes {
                 transitionCellClassArrayBuilder[i] = transitionCellClass[i];
 
             // GeometryCount, VertexCount, TriangleCount
-            // This was formerly part of TransitionCellData
             byte[] transitionGeometryCount = {
                 0x00, 0x42, 0x31, 0x42, 0x53, 0x64, 0x84, 0x73, 0x84, 0x62, 0x53, 0x75, 0x84, 0x95, 0xA6, 0x86,
                 0x95, 0x95, 0xA4, 0xC6, 0x64, 0x93, 0x64, 0x97, 0xB7, 0xA6, 0xB5, 0xA6, 0xA6, 0x97, 0x86, 0xC8,
@@ -492,7 +492,6 @@ namespace Spellbound.MarchingCubes {
                 transitionTriangleCountArrayBuilder[i] = (transitionGeometryCount[i] & 0x0F) * 3;
 
             // Indices.
-            // This was formerly part of TransitionCellData.
             byte[][] transitionIndices = {
                 new byte[] { },
                 new byte[] { 0, 1, 3, 1, 2, 3 },
@@ -1132,7 +1131,7 @@ namespace Spellbound.MarchingCubes {
                     transitionVertexDataInnerArrayBuilder[j] = transitionVertexData[i][j];
             }
 
-            var result = builder.CreateBlobAssetReference<MCTablesBlobAsset>(Allocator.Persistent);
+            var result = builder.CreateBlobAssetReference<McTablesBlobAsset>(Allocator.Persistent);
             builder.Dispose();
 
             return result;

@@ -1,12 +1,16 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
-using Helper = Spellbound.Core.SpellboundStaticHelper;
 
 namespace Spellbound.MarchingCubes {
+    /// <summary>
+    /// Unpacks Sparse Voxel Data to Dense.
+    /// Vibecoded with chatgpt because Binary Searches and RLEs are well-known and replicable. 
+    /// </summary>
     [BurstCompile]
     public struct SparseToDenseVoxelDataJob : IJobParallelFor {
         [NativeDisableParallelForRestriction] public NativeArray<VoxelData> Voxels;
@@ -14,7 +18,7 @@ namespace Spellbound.MarchingCubes {
         [ReadOnly] public NativeList<SparseVoxelData> SparseVoxels;
 
         public void Execute(int deckIndex) {
-            var voxelsPerDeck = (Helper.ChunkSize + 3) * (Helper.ChunkSize + 3);
+            var voxelsPerDeck = McStaticHelper.ChunkDataAreaSize;
             var start = deckIndex * voxelsPerDeck;
             var end = start + voxelsPerDeck;
 
@@ -39,6 +43,7 @@ namespace Spellbound.MarchingCubes {
             }
         }
 
+        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int BinarySearchForStart(int targetIndex) {
             int left = 0, right = SparseVoxels.Length - 1;
             var result = 0;
