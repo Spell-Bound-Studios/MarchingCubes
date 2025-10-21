@@ -9,11 +9,11 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
-    /// This job marches the cubes of one chunk of terrain at full resolution
+    /// Job to March the Cubes (generate vertices and triangles from voxels) for the main region of a leaf of terrain.
     /// </summary>
     [BurstCompile]
     internal struct MarchingCubeJob : IJob {
-        [ReadOnly] public BlobAssetReference<MCTablesBlobAsset> Tables;
+        [ReadOnly] public BlobAssetReference<McTablesBlobAsset> Tables;
 
         [NativeDisableParallelForRestriction, ReadOnly]
         public NativeArray<VoxelData> VoxelArray;
@@ -143,23 +143,11 @@ namespace Spellbound.MarchingCubes {
 
                                 var vertLocalPos1 = cellPos + new int3(padding, padding, padding) +
                                                     Tables.Value.RegularCornerOffset[cornerIdx1] * lodScale;
-                                var voxel0 = cellValues[cornerIdx0];
-                                var voxel1 = cellValues[cornerIdx1];
-
-                                /*
-                                if (cellValues[cornerIdx0].Density > cellValues[cornerIdx1].Density) {
-                                    (vertLocalPos0, vertLocalPos1) = (vertLocalPos1, vertLocalPos0);
-                                    (voxel0, voxel1) = (voxel1, voxel0);
-                                }
-                                */
-
-                                // Density0 and density1 are the densities at each end of the edge along which the vertex
-                                // belongs.
 
                                 var p0 = (float3)vertLocalPos0;
                                 var p1 = (float3)vertLocalPos1;
 
-                                // This consecutively subdivides the coarser LOD to find the exact place the density crosses the threshhold.
+                                // This consecutively subdivides the coarser LOD to find the exact place the density crosses the threshold.
                                 for (var j = 0; j < Lod; ++j) {
                                     var mid = (p0 + p1) * 0.5f;
                                     var samplePos = (int3)math.round(mid);
@@ -194,11 +182,11 @@ namespace Spellbound.MarchingCubes {
 
                                 var index0 = McStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z);
-                                voxel0 = VoxelArray[index0];
+                                var voxel0 = VoxelArray[index0];
 
                                 var index1 = McStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
                                     vertLocalPos1.z);
-                                voxel1 = VoxelArray[index1];
+                                var voxel1 = VoxelArray[index1];
 
                                 //Interpolating the vertex position based on the densities at the ends of the edge
                                 //along which the vertex belongs.
@@ -216,50 +204,50 @@ namespace Spellbound.MarchingCubes {
                                 var vertPosY1 = vertLocalPos1.y;
                                 var vertPosZ1 = vertLocalPos1.z;
 
-                                var v0_011 = VoxelArray[
+                                var v0011 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0)];
 
-                                var v0_211 = VoxelArray[
+                                var v0211 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0)];
 
-                                var v0_101 = VoxelArray[
+                                var v0101 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0)];
 
-                                var v0_121 = VoxelArray[
+                                var v0121 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0)];
 
-                                var v0_110 = VoxelArray[
+                                var v0110 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1)];
 
-                                var v0_112 = VoxelArray[
+                                var v0112 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1)];
 
-                                var v1_011 = VoxelArray[
+                                var v1011 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1)];
 
-                                var v1_211 = VoxelArray[
+                                var v1211 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1)];
 
-                                var v1_101 = VoxelArray[
+                                var v1101 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1)];
 
-                                var v1_121 = VoxelArray[
+                                var v1121 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1)];
 
-                                var v1_110 = VoxelArray[
+                                var v1110 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1)];
 
-                                var v1_112 = VoxelArray[
+                                var v1112 = VoxelArray[
                                     McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1)];
 
-                                var normal0 = new float3(v0_011.Density - v0_211.Density,
-                                    v0_101.Density - v0_121.Density,
-                                    v0_110.Density - v0_112.Density
+                                var normal0 = new float3(v0011.Density - v0211.Density,
+                                    v0101.Density - v0121.Density,
+                                    v0110.Density - v0112.Density
                                 );
 
-                                var normal1 = new float3(v1_011.Density - v1_211.Density,
-                                    v1_101.Density - v1_121.Density,
-                                    v1_110.Density - v1_112.Density
+                                var normal1 = new float3(v1011.Density - v1211.Density,
+                                    v1101.Density - v1121.Density,
+                                    v1110.Density - v1112.Density
                                 );
 
                                 // The normal is a weighted average of the normals at the ends of the edges, same as
@@ -267,8 +255,8 @@ namespace Spellbound.MarchingCubes {
                                 var normal = math.lerp(normal0, normal1, t);
                                 normal = math.normalize(normal);
 
-                                float matA_Weight = 0;
-                                float matB_Weight = 0;
+                                float matAWeight = 0;
+                                float matBWeight = 0;
 
                                 byte matA = 0;
                                 byte matB = 1;
@@ -276,35 +264,35 @@ namespace Spellbound.MarchingCubes {
                                 if (voxel0.MatIndex == 1) t = 1 - t;
 
                                 var matS0 = new NativeArray<byte>(6, Allocator.Temp);
-                                matS0[0] = v0_011.MatIndex;
-                                matS0[1] = v0_211.MatIndex;
-                                matS0[2] = v0_101.MatIndex;
-                                matS0[3] = v0_121.MatIndex;
-                                matS0[4] = v0_110.MatIndex;
-                                matS0[5] = v0_112.MatIndex;
+                                matS0[0] = v0011.MatIndex;
+                                matS0[1] = v0211.MatIndex;
+                                matS0[2] = v0101.MatIndex;
+                                matS0[3] = v0121.MatIndex;
+                                matS0[4] = v0110.MatIndex;
+                                matS0[5] = v0112.MatIndex;
 
                                 var matS1 = new NativeArray<byte>(6, Allocator.Temp);
-                                matS1[0] = v1_011.MatIndex;
-                                matS1[1] = v1_211.MatIndex;
-                                matS1[2] = v1_101.MatIndex;
-                                matS1[3] = v1_121.MatIndex;
-                                matS1[4] = v1_110.MatIndex;
-                                matS1[5] = v1_112.MatIndex;
+                                matS1[0] = v1011.MatIndex;
+                                matS1[1] = v1211.MatIndex;
+                                matS1[2] = v1101.MatIndex;
+                                matS1[3] = v1121.MatIndex;
+                                matS1[4] = v1110.MatIndex;
+                                matS1[5] = v1112.MatIndex;
 
                                 foreach (var mat in matS0) {
-                                    if (mat == matA) matA_Weight += 1 - t;
-                                    else if (mat == matB) matB_Weight += 1 - t;
+                                    if (mat == matA) matAWeight += 1 - t;
+                                    else if (mat == matB) matBWeight += 1 - t;
                                 }
 
                                 foreach (var mat in matS1) {
-                                    if (mat == matA) matA_Weight += t;
-                                    else if (mat == matB) matB_Weight += t;
+                                    if (mat == matA) matAWeight += t;
+                                    else if (mat == matB) matBWeight += t;
                                 }
 
                                 matS0.Dispose();
                                 matS1.Dispose();
 
-                                var blend = (float)matB_Weight / (matA_Weight + matB_Weight + 1e-5f);
+                                var blend = matBWeight / (matAWeight + matBWeight + 1e-5f);
 
                                 var blendByte = (byte)Mathf.RoundToInt(blend * 255f);
 
@@ -334,8 +322,8 @@ namespace Spellbound.MarchingCubes {
                             var ib = vertexIndices[cellIndices[i + 1]];
                             var ic = vertexIndices[cellIndices[i + 2]];
 
-                            if (!IsDegenerateTriangle(Vertices[ia].position, Vertices[ib].position,
-                                    Vertices[ic].position)) {
+                            if (!IsDegenerateTriangle(Vertices[ia].Position, Vertices[ib].Position,
+                                    Vertices[ic].Position)) {
                                 Triangles.Add(ic);
                                 Triangles.Add(ib);
                                 Triangles.Add(ia);

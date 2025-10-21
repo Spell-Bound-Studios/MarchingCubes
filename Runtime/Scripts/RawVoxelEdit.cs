@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Spellbound.WorldSystem {
     /// <summary>
-    /// This never gets sent on the network.
+    /// VoxelEdit prior to being distributed to the relevant chunks it modifies
     /// </summary>
     public readonly struct RawVoxelEdit {
         public Vector3Int WorldPosition { get; }

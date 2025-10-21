@@ -1,15 +1,20 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System.Collections.Generic;
+using Spellbound.Core;
+using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using UnityEngine;
+using McHelper = Spellbound.MarchingCubes.McStaticHelper;
 
 namespace Spellbound.MarchingCubes {
+    /// <summary>
+    /// Manager for handling the LODs and cached Dense/Unpacked Voxel Arrays for Marching Cubes.
+    /// </summary>
     public class MarchingCubesManager : MonoBehaviour {
-        public static MarchingCubesManager Instance { get; private set; }
-
-        public BlobAssetReference<MCTablesBlobAsset> McTablesBlob;
+        public BlobAssetReference<McTablesBlobAsset> McTablesBlob;
         [SerializeField] public GameObject octreePrefab;
-
         [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
 
         //This MUST have a length of MaxLevelOfDetail + 1
@@ -20,16 +25,17 @@ namespace Spellbound.MarchingCubes {
             new(200, 350)
         };
 
+        private const int MaxEntries = 10;
+
+        private readonly NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
+        private readonly Dictionary<Vector3Int, int> _keyToSlot = new();
+        private readonly Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
+        private readonly Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
+
         private void Awake() {
-            if (Instance != null && Instance != this) {
-                Destroy(gameObject);
-
-                return;
-            }
-
-            Instance = this;
-
-            McTablesBlob = MCTablesBlobCreator.CreateMCTablesBlobAsset();
+            SingletonManager.RegisterSingleton(this);
+            McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
+            AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
         }
 
         private void OnValidate() {
@@ -51,6 +57,69 @@ namespace Spellbound.MarchingCubes {
         private void OnDestroy() {
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
+
+            DisposeDenseBuffers();
+        }
+
+        private void AllocateDenseBuffers(int arraySize) {
+            for (var i = 0; i < MaxEntries; i++)
+                _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
+        }
+
+        public NativeArray<VoxelData> GetOrCreate(
+            Vector3Int coord, IVoxelTerrainChunk chunk,
+            NativeList<SparseVoxelData> sparseData) {
+            if (_keyToSlot.TryGetValue(coord, out var existingSlot)) return _denseBuffers[existingSlot];
+
+            var slot = _keyToSlot.Count < MaxEntries ? _keyToSlot.Count : EvictDenseBuffer();
+
+            var buffer = _denseBuffers[slot];
+
+            var unpackJob = new SparseToDenseVoxelDataJob {
+                Voxels = buffer,
+                SparseVoxels = sparseData
+            };
+            var jobHandle = unpackJob.Schedule(McHelper.ChunkDataWidthSize, 1);
+            jobHandle.Complete();
+
+            _keyToSlot[coord] = slot;
+            _slotToKey[slot] = coord;
+            _slotEvictionQueue.Enqueue((slot, chunk));
+
+            return buffer;
+        }
+
+        private int EvictDenseBuffer() {
+            var indexAndChunkTuple = _slotEvictionQueue.Dequeue();
+            var oldKey = _slotToKey[indexAndChunkTuple.Item1];
+            _keyToSlot.Remove(oldKey);
+
+            if (indexAndChunkTuple.Item2 == null || !indexAndChunkTuple.Item2.IsDirty())
+                return indexAndChunkTuple.Item1;
+
+            var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
+
+            var packJob = new DenseToSparseVoxelDataJob {
+                Voxels = _denseBuffers[indexAndChunkTuple.Item1],
+                SparseVoxels = sparseData
+            };
+            var jobHandle = packJob.Schedule();
+            jobHandle.Complete();
+
+            indexAndChunkTuple.Item2.UpdateSparseVoxels(sparseData);
+            sparseData.Dispose();
+
+            return indexAndChunkTuple.Item1;
+        }
+
+        private void DisposeDenseBuffers() {
+            for (var i = 0; i < MaxEntries; i++) {
+                if (_denseBuffers[i].IsCreated)
+                    _denseBuffers[i].Dispose();
+            }
+
+            _keyToSlot.Clear();
+            _slotEvictionQueue.Clear();
         }
     }
 }

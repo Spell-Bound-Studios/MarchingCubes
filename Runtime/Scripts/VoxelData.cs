@@ -1,12 +1,14 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System;
+
 namespace Spellbound.MarchingCubes {
     /// <summary>
     /// Represents a single cubic dimension in the game world. It is a discrete cube that characterizes
     /// a volume in the game world with a material and density.
     /// This doesn't get sent on the network or saved.
     /// </summary>
-    public struct VoxelData {
+    public struct VoxelData : IEquatable<VoxelData> {
         public byte Density;
         public byte MatIndex;
 
@@ -14,5 +16,18 @@ namespace Spellbound.MarchingCubes {
             Density = density;
             MatIndex = matIndex;
         }
+
+        // Implement IEquatable<VoxelData>. This enables checking if structA == structB, etc.
+        public bool Equals(VoxelData other) => Density == other.Density && MatIndex == other.MatIndex;
+
+        public override bool Equals(object obj) => obj is VoxelData other && Equals(other);
+
+        public override int GetHashCode() =>
+                // Combine hashes of fields; since these are bytes, simple mixing is enough
+                (Density.GetHashCode() * 397) ^ MatIndex.GetHashCode();
+
+        public static bool operator ==(VoxelData left, VoxelData right) => left.Equals(right);
+
+        public static bool operator !=(VoxelData left, VoxelData right) => !(left == right);
     }
 }

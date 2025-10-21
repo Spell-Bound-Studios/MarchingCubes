@@ -5,6 +5,9 @@ using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
+    /// <summary>
+    /// Defines the contract that a chunk must fulfill to integrate with the Marching Cubes Voxel System.
+    /// </summary>
     public interface IVoxelTerrainChunk {
         public NativeArray<VoxelData> GetVoxelArray();
 
@@ -14,9 +17,13 @@ namespace Spellbound.MarchingCubes {
         public Transform GetChunkTransform();
 
         public void ReceivedProcGenData(
-            NativeArray<VoxelData> voxels,
+            NativeList<SparseVoxelData> voxels,
             byte minDensity,
             byte maxDensity);
+
+        public void UpdateSparseVoxels(NativeList<SparseVoxelData> voxels);
+
+        public bool IsDirty();
 
         public void BroadcastNewLeaf(OctreeNode newLeaf, Vector3 pos, int index);
 
