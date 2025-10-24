@@ -325,7 +325,7 @@ namespace Spellbound.MarchingCubes {
 
             // Create array of voxels to process
             var voxelsToProcess = new NativeArray<VoxelData>(14, Allocator.Temp);
-                                
+
             voxelsToProcess[0] = voxel0;
             voxelsToProcess[1] = v0011;
             voxelsToProcess[2] = v0211;
@@ -333,7 +333,7 @@ namespace Spellbound.MarchingCubes {
             voxelsToProcess[4] = v0121;
             voxelsToProcess[5] = v0110;
             voxelsToProcess[6] = v0112;
-                                
+
             voxelsToProcess[7] = voxel0;
             voxelsToProcess[8] = v1011;
             voxelsToProcess[9] = v1211;
@@ -396,7 +396,6 @@ namespace Spellbound.MarchingCubes {
 
             uniqueMaterials.Dispose();
             materialWeights.Dispose();
-            
 
             color = new Color32((byte)matA, (byte)matB, (byte)matA, 0);
         }

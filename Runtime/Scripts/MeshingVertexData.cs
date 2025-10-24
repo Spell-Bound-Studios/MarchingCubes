@@ -14,7 +14,6 @@ namespace Spellbound.MarchingCubes {
         public Color32 FixedColor;
         public float2 InterpolatedColor;
 
-
         public MeshingVertexData(float3 position, float3 normal, Color32 fixedColor, float2 interpolatedColor) {
             Position = position;
             Normal = normal;

@@ -1,4 +1,4 @@
-using UnityEngine;
+// Copyright 2025 Spellbound Studio Inc.
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
@@ -11,6 +11,4 @@ namespace Spellbound.MarchingCubes {
         Sand,
         Ice
     }
-
 }
-
