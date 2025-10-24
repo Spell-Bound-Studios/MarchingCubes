@@ -255,56 +255,90 @@ namespace Spellbound.MarchingCubes {
                                 var normal = math.lerp(normal0, normal1, t);
                                 normal = math.normalize(normal);
 
+                                // More efficient version without unsafe code
+                                var uniqueMaterials = new NativeList<MaterialType>(14, Allocator.Temp);
+                                var materialWeights = new NativeList<float>(14, Allocator.Temp);
+
+                                var weight0 = 1f - t;
+
+                                // Create array of voxels to process
+                                var voxelsToProcess = new NativeArray<VoxelData>(14, Allocator.Temp);
+
+                                voxelsToProcess[0] = voxel0;
+                                voxelsToProcess[1] = v0011;
+                                voxelsToProcess[2] = v0211;
+                                voxelsToProcess[3] = v0101;
+                                voxelsToProcess[4] = v0121;
+                                voxelsToProcess[5] = v0110;
+                                voxelsToProcess[6] = v0112;
+
+                                voxelsToProcess[7] = voxel0;
+                                voxelsToProcess[8] = v1011;
+                                voxelsToProcess[9] = v1211;
+                                voxelsToProcess[10] = v1101;
+                                voxelsToProcess[11] = v1121;
+                                voxelsToProcess[12] = v1110;
+                                voxelsToProcess[13] = v1112;
+
+                                for (var v = 0; v < 14; v++) {
+                                    var voxel = voxelsToProcess[v];
+
+                                    // Skip voxels with zero density (air)
+                                    if (voxel.Density == 0) continue;
+
+                                    var matIndex = voxel.MaterialType;
+                                    var baseWeight = v < 7 ? weight0 : t;
+
+                                    // Weight by density (normalized to 0-1 range, assuming density is 0-255)
+                                    var densityWeight = voxel.Density / 255f;
+                                    var weight = baseWeight * densityWeight;
+
+                                    var existingIndex = -1;
+
+                                    for (var k = 0; k < uniqueMaterials.Length; k++) {
+                                        if (uniqueMaterials[k] == matIndex) {
+                                            existingIndex = k;
+
+                                            break;
+                                        }
+                                    }
+
+                                    if (existingIndex >= 0)
+                                        materialWeights[existingIndex] += weight;
+                                    else {
+                                        uniqueMaterials.Add(matIndex);
+                                        materialWeights.Add(weight);
+                                    }
+                                }
+
+                                voxelsToProcess.Dispose();
+
+                                // Find top 2 materials
+                                MaterialType matA = 0;
+                                MaterialType matB = 0;
                                 float matAWeight = 0;
                                 float matBWeight = 0;
 
-                                byte matA = 0;
-                                byte matB = 1;
-
-                                if (voxel0.MatIndex == 1) t = 1 - t;
-
-                                var matS0 = new NativeArray<byte>(6, Allocator.Temp);
-                                matS0[0] = v0011.MatIndex;
-                                matS0[1] = v0211.MatIndex;
-                                matS0[2] = v0101.MatIndex;
-                                matS0[3] = v0121.MatIndex;
-                                matS0[4] = v0110.MatIndex;
-                                matS0[5] = v0112.MatIndex;
-
-                                var matS1 = new NativeArray<byte>(6, Allocator.Temp);
-                                matS1[0] = v1011.MatIndex;
-                                matS1[1] = v1211.MatIndex;
-                                matS1[2] = v1101.MatIndex;
-                                matS1[3] = v1121.MatIndex;
-                                matS1[4] = v1110.MatIndex;
-                                matS1[5] = v1112.MatIndex;
-
-                                foreach (var mat in matS0) {
-                                    if (mat == matA) matAWeight += 1 - t;
-                                    else if (mat == matB) matBWeight += 1 - t;
+                                for (var l = 0; l < uniqueMaterials.Length; l++) {
+                                    if (materialWeights[l] > matAWeight) {
+                                        matB = matA;
+                                        matBWeight = matAWeight;
+                                        matA = uniqueMaterials[l];
+                                        matAWeight = materialWeights[l];
+                                    }
+                                    else if (materialWeights[l] > matBWeight) {
+                                        matB = uniqueMaterials[l];
+                                        matBWeight = materialWeights[l];
+                                    }
                                 }
 
-                                foreach (var mat in matS1) {
-                                    if (mat == matA) matAWeight += t;
-                                    else if (mat == matB) matBWeight += t;
-                                }
+                                uniqueMaterials.Dispose();
+                                materialWeights.Dispose();
 
-                                matS0.Dispose();
-                                matS1.Dispose();
+                                var colorInterp = new float2((float)matA / byte.MaxValue, 0);
 
-                                var blend = matBWeight / (matAWeight + matBWeight + 1e-5f);
-
-                                var blendByte = (byte)Mathf.RoundToInt(blend * 255f);
-
-                                var color = new Color32(
-                                    voxel0.MatIndex, // R: material A
-                                    voxel1.MatIndex, // G: material B
-                                    blendByte,       // B: blend T for material B
-                                    0                // A: unused (optional)
-                                );
-
-                                // This puts the vertex data into the vertex array, which is used to Build the Mesh
-                                Vertices.Add(new MeshingVertexData(vertex, normal, color));
+                                var color = new Color32((byte)matA, (byte)matB, 0, 0);
+                                Vertices.Add(new MeshingVertexData(vertex, normal, color, colorInterp));
                             }
 
                             // For both new vertices and vertices re-used from previous cubes, the vertex index is
