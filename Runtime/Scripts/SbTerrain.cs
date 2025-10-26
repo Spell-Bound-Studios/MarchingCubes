@@ -44,7 +44,7 @@ namespace Spellbound.MarchingCubes {
         public static bool IsInsideTerrain(Vector3 position) =>
                 QueryVoxel(position).Density >= McStaticHelper.DensityThreshold;
 
-        public static void DigSphere(
+        public static void RemoveSphere(
             Vector3 position,
             List<MaterialType> diggableMaterialTypes = null,
             float radius = 2f,
@@ -78,7 +78,7 @@ namespace Spellbound.MarchingCubes {
             MapVoxelEditsToChunkCoords(rawVoxelEdits, diggableMaterialTypes.ToHashSet());
         }
 
-        public static void DepositSphere(
+        public static void AddSphere(
             Vector3 position, MaterialType depositType,
             float radius = 2f,
             int delta = byte.MaxValue) {
