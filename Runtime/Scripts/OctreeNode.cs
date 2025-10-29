@@ -32,7 +32,7 @@ namespace Spellbound.MarchingCubes {
         private readonly MarchingCubesManager _mcManager;
 
         private bool IsLeaf => _children == null;
-        private NativeArray<VoxelData> VoxelData => _chunk.GetVoxelArray();
+        private NativeArray<VoxelData> VoxelData => _chunk.GetVoxelData();
 
         private Vector3Int WorldPosition => _chunk.GetChunkCoord() * SpellboundStaticHelper.ChunkSize;
 
@@ -194,11 +194,7 @@ namespace Spellbound.MarchingCubes {
                 Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
             };
             var jobHandle = marchingCubeJob.Schedule();
-            jobHandle.Complete();
-            UpdateLeafMesh(marchingCubeJob.Vertices, marchingCubeJob.Triangles);
-
-            marchingCubeJob.Vertices.Dispose();
-            marchingCubeJob.Triangles.Dispose();
+            _mcManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles);
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
@@ -216,14 +212,12 @@ namespace Spellbound.MarchingCubes {
                 };
 
                 var transitionJobHandle = transitionMarchingCubeJob.Schedule();
-                transitionJobHandle.Complete();
-                _transitionMask = 0;
-                _allTransitionTriangles.CopyFrom(transitionMarchingCubeJob.TransitionTriangles);
-                _transitionRanges.CopyFrom(transitionMarchingCubeJob.TransitionRanges);
-                UpdateTransitionVertexBuffer(transitionMarchingCubeJob.TransitionMeshingVertexData);
-                transitionMarchingCubeJob.TransitionMeshingVertexData.Dispose();
-                transitionMarchingCubeJob.TransitionTriangles.Dispose();
-                transitionMarchingCubeJob.TransitionRanges.Dispose();
+
+                _mcManager.RegisterTransitionJob(this,
+                    transitionJobHandle,
+                    transitionMarchingCubeJob.TransitionMeshingVertexData,
+                    transitionMarchingCubeJob.TransitionTriangles,
+                    transitionMarchingCubeJob.TransitionRanges);
             }
         }
 
@@ -305,6 +299,8 @@ namespace Spellbound.MarchingCubes {
                                  $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
             _transitionGo.transform.parent = _leafGo.transform;
 
+            _transitionMask = 0;
+
             if (!_allTransitionTriangles.IsCreated) _allTransitionTriangles = new NativeList<int>(Allocator.Persistent);
 
             if (!_filteredTransitionTriangles.IsCreated)
@@ -314,7 +310,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void UpdateTransitionVertexBuffer(NativeList<MeshingVertexData> vertices) {
-            if (!vertices.IsCreated || vertices.Length < 3)
+            if (!vertices.IsCreated)
                 return;
 
             _transitionMesh.SetVertexBufferParams(vertices.Length, MeshingVertexData.VertexBufferMemoryLayout);
@@ -347,8 +343,10 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void HandleTransitionUpdate() {
-            _mcManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
-            _transitionDirtyFlag = false;
+            if (_transitionDirtyFlag) {
+                _mcManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
+                _transitionDirtyFlag = false;
+            }
 
             if (!_transitionRanges.IsCreated)
                 return;
@@ -420,5 +418,21 @@ namespace Spellbound.MarchingCubes {
                     McStaticHelper.TransitionFaceMask.ZMax => McStaticHelper.TransitionFaceMask.ZMin,
                     _ => McStaticHelper.TransitionFaceMask.XMin
                 };
+
+        public void ApplyMarchResults(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {
+            UpdateLeafMesh(vertices, triangles);
+
+            if (_lod != 0)
+                HandleTransitionUpdate();
+        }
+
+        public void ApplyTransitionMarchResults(
+            NativeList<MeshingVertexData> vertices,
+            NativeList<int> triangles,
+            NativeArray<int2> triangleRanges) {
+            _allTransitionTriangles.CopyFrom(triangles);
+            _transitionRanges.CopyFrom(triangleRanges);
+            UpdateTransitionVertexBuffer(vertices);
+        }
     }
 }
