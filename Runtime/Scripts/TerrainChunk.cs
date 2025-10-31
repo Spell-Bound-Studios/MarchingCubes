@@ -36,7 +36,7 @@ namespace Spellbound.MarchingCubes {
 
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
-            _rootNode = new OctreeNode(Vector3Int.zero, McStaticHelper.MaxLevelOfDetail, this);
+            _rootNode = new OctreeNode(Vector3Int.zero, _mcManager.McConfigBlob.Value.LevelsOfDetail, this);
             ValidateOctreeLods(Camera.main.transform.position);
         }
 
@@ -76,6 +76,7 @@ namespace Spellbound.MarchingCubes {
             var hasAnyEdits = false;
             Bounds editBounds = default;
 
+            ref var config = ref _mcManager.McConfigBlob.Value;
             foreach (var voxelEdit in newVoxelEdits) {
                 var index = voxelEdit.index;
                 var existingVoxel = voxelArray[index];
@@ -87,7 +88,7 @@ namespace Spellbound.MarchingCubes {
 
                 voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
 
-                McStaticHelper.IndexToInt3(index, out var x, out var y, out var z);
+                McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x, out var y, out var z);
                 var localPos = new Vector3Int(x, y, z);
 
                 if (!hasAnyEdits) {
@@ -113,8 +114,9 @@ namespace Spellbound.MarchingCubes {
         }
 
         public VoxelData GetVoxelData(Vector3Int position) {
+            ref var config = ref _mcManager.McConfigBlob.Value;
             var localPos = position - _chunkCoord * SpellboundStaticHelper.ChunkSize;
-            var index = McStaticHelper.Coord3DToIndex(localPos.x, localPos.y, localPos.z);
+            var index = McStaticHelper.Coord3DToIndex(localPos.x, localPos.y, localPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
             return GetVoxelData(index);
         }
@@ -124,7 +126,7 @@ namespace Spellbound.MarchingCubes {
         // TODO: Null checking twice is weird.
         public void ValidateOctreeEdits(Bounds bounds) {
             if (_rootNode == null)
-                _rootNode = new OctreeNode(Vector3Int.zero, McStaticHelper.MaxLevelOfDetail, this);
+                _rootNode = new OctreeNode(Vector3Int.zero, _mcManager.McConfigBlob.Value.LevelsOfDetail, this);
 
             var worldBounds = new Bounds(bounds.center + _chunkCoord * SpellboundStaticHelper.ChunkSize, bounds.size);
             _rootNode.ValidateOctreeEdits(worldBounds);
@@ -139,12 +141,13 @@ namespace Spellbound.MarchingCubes {
 
         public void SetChunkFields(Vector3Int coord) {
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            ref var config = ref _mcManager.McConfigBlob.Value;
             _chunkManager = SingletonManager.GetSingletonInstance<IVoxelTerrainChunkManager>();
             _chunkCoord = coord;
 
             _bounds = new Bounds(
-                coord * SpellboundStaticHelper.ChunkSize + McStaticHelper.ChunkCenter,
-                McStaticHelper.ChunkExtents);
+                coord * SpellboundStaticHelper.ChunkSize + config.ChunkExtents,
+                config.ChunkExtents);
             gameObject.name = coord.ToString();
         }
 
