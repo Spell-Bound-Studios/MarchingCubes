@@ -34,10 +34,17 @@ namespace Spellbound.MarchingCubes {
         private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
         private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
 
+        // NEW: Track which chunks each job is using
+        private Dictionary<OctreeNode, Vector3Int> _nodeToChunkCoord = new();
+
         private const int MaxEntries = 10;
 
         private readonly NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
         private readonly Dictionary<Vector3Int, int> _keyToSlot = new();
+        
+        // NEW: Reference counting for each slot
+        private readonly int[] _slotReferenceCounts = new int[MaxEntries];
+        
         private readonly Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
         private readonly Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
 
@@ -64,7 +71,6 @@ namespace Spellbound.MarchingCubes {
 
         private void LateUpdate() {
             OctreeBatchTransitionUpdate?.Invoke();
-            CompleteAndApplyMarchingCubesJobs();
         } 
 
         private void OnDestroy() {
@@ -106,7 +112,7 @@ namespace Spellbound.MarchingCubes {
             if (_objectPoolParent != null && !_isShuttingDown)
                 go.transform.SetParent(_objectPoolParent);
             else
-                go.transform.SetParent(null); // Detach to avoid parenting to destroyed object
+                go.transform.SetParent(null);
             _objectPool.Push(go);
         }
 
@@ -115,8 +121,10 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void AllocateDenseBuffers(int arraySize) {
-            for (var i = 0; i < MaxEntries; i++)
+            for (var i = 0; i < MaxEntries; i++) {
                 _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
+                _slotReferenceCounts[i] = 0; // NEW: Initialize reference counts
+            }
         }
 
         public NativeArray<VoxelData> GetOrCreate(
@@ -149,26 +157,50 @@ namespace Spellbound.MarchingCubes {
         }
 
         private int EvictDenseBuffer() {
-            var indexAndChunkTuple = _slotEvictionQueue.Dequeue();
-            var oldKey = _slotToKey[indexAndChunkTuple.Item1];
-            _keyToSlot.Remove(oldKey);
+            // NEW: Find the first slot that isn't locked by a running job
+            int attempts = 0;
+            while (_slotEvictionQueue.Count > 0 && attempts < MaxEntries) {
+                var indexAndChunkTuple = _slotEvictionQueue.Dequeue();
+                var slot = indexAndChunkTuple.Item1;
+                
+                // Check if this slot is locked by active jobs
+                if (_slotReferenceCounts[slot] > 0) {
+                    // Re-enqueue and try next slot
+                    _slotEvictionQueue.Enqueue(indexAndChunkTuple);
+                    attempts++;
+                    continue;
+                }
+                
+                // Found an unlocked slot, proceed with eviction
+                var oldKey = _slotToKey[slot];
+                _keyToSlot.Remove(oldKey);
 
-            if (indexAndChunkTuple.Item2 == null || !indexAndChunkTuple.Item2.IsDirty())
-                return indexAndChunkTuple.Item1;
+                if (indexAndChunkTuple.Item2 == null || !indexAndChunkTuple.Item2.IsDirty())
+                    return slot;
 
-            var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
+                var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
 
-            var packJob = new DenseToSparseVoxelDataJob {
-                Voxels = _denseBuffers[indexAndChunkTuple.Item1],
-                SparseVoxels = sparseData
-            };
-            var jobHandle = packJob.Schedule();
-            jobHandle.Complete();
+                var packJob = new DenseToSparseVoxelDataJob {
+                    Voxels = _denseBuffers[slot],
+                    SparseVoxels = sparseData
+                };
+                var jobHandle = packJob.Schedule();
+                jobHandle.Complete();
 
-            indexAndChunkTuple.Item2.UpdateVoxelData(sparseData);
-            sparseData.Dispose();
+                indexAndChunkTuple.Item2.UpdateVoxelData(sparseData);
+                sparseData.Dispose();
 
-            return indexAndChunkTuple.Item1;
+                return slot;
+            }
+            
+            // CRITICAL: If all slots are locked, we have a problem
+            // This shouldn't happen with proper configuration, but handle gracefully
+            Debug.LogError($"All {MaxEntries} cache slots are locked by active jobs! Increase MaxEntries or reduce concurrent chunk generation.");
+            
+            // As a last resort, return the oldest slot (this may cause visual glitches)
+            var fallback = _slotEvictionQueue.Dequeue();
+            _slotEvictionQueue.Enqueue(fallback);
+            return fallback.Item1;
         }
 
         private void DisposeDenseBuffers() {
@@ -179,6 +211,24 @@ namespace Spellbound.MarchingCubes {
 
             _keyToSlot.Clear();
             _slotEvictionQueue.Clear();
+        }
+
+        // NEW: Lock a chunk's data when scheduling a job
+        private void LockChunkData(Vector3Int coord) {
+            if (_keyToSlot.TryGetValue(coord, out var slot)) {
+                _slotReferenceCounts[slot]++;
+            }
+        }
+
+        // NEW: Unlock a chunk's data when job completes
+        private void UnlockChunkData(Vector3Int coord) {
+            if (_keyToSlot.TryGetValue(coord, out var slot)) {
+                _slotReferenceCounts[slot]--;
+                if (_slotReferenceCounts[slot] < 0) {
+                    Debug.LogError($"Reference count went negative for slot {slot} (coord {coord})");
+                    _slotReferenceCounts[slot] = 0;
+                }
+            }
         }
 
         /// <summary>
@@ -328,13 +378,18 @@ namespace Spellbound.MarchingCubes {
             OctreeNode node,
             JobHandle jobHandle,
             NativeList<MeshingVertexData> vertices,
-            NativeList<int> triangles) {
+            NativeList<int> triangles,
+            Vector3Int chunkCoord) { // NEW: Added chunkCoord parameter
             _combinedJobHandle = JobHandle.CombineDependencies(_combinedJobHandle, jobHandle);
 
             _pendingMarchJobData[node] = new MarchJobData {
                 Vertices = vertices,
                 Triangles = triangles
             };
+            
+            // NEW: Track which chunk this node is using and lock it
+            _nodeToChunkCoord[node] = chunkCoord;
+            LockChunkData(chunkCoord);
         }
 
         public void RegisterTransitionJob(
@@ -342,7 +397,8 @@ namespace Spellbound.MarchingCubes {
             JobHandle jobHandle,
             NativeList<MeshingVertexData> vertices,
             NativeList<int> triangles,
-            NativeArray<int2> ranges) {
+            NativeArray<int2> ranges,
+            Vector3Int chunkCoord) { // NEW: Added chunkCoord parameter
             _combinedJobHandle = JobHandle.CombineDependencies(_combinedJobHandle, jobHandle);
 
             _pendingTransitionMarchJobData[node] = new TransitionMarchJobData {
@@ -350,6 +406,12 @@ namespace Spellbound.MarchingCubes {
                 Triangles = triangles,
                 Ranges = ranges
             };
+            
+            // NEW: Lock the chunk data (only if not already locked by main march job)
+            if (!_nodeToChunkCoord.ContainsKey(node)) {
+                _nodeToChunkCoord[node] = chunkCoord;
+                LockChunkData(chunkCoord);
+            }
         }
 
         public void CompleteAndApplyMarchingCubesJobs() {
@@ -366,10 +428,16 @@ namespace Spellbound.MarchingCubes {
             foreach (var kvp in _pendingMarchJobData) {
                 kvp.Key.ApplyMarchResults(kvp.Value.Vertices, kvp.Value.Triangles);
                 kvp.Value.Dispose();
+                
+                // NEW: Unlock the chunk data after job completes
+                if (_nodeToChunkCoord.TryGetValue(kvp.Key, out var chunkCoord)) {
+                    UnlockChunkData(chunkCoord);
+                }
             }
 
             _pendingMarchJobData.Clear();
             _pendingTransitionMarchJobData.Clear();
+            _nodeToChunkCoord.Clear(); // NEW: Clear the tracking dictionary
             _combinedJobHandle = default;
         }
     }

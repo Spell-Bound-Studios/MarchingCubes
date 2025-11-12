@@ -197,7 +197,8 @@ namespace Spellbound.MarchingCubes {
                 Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
             };
             var jobHandle = marchingCubeJob.Schedule();
-            _mcManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles);
+            // CHANGED: Pass chunk coordinate to lock the data
+            _mcManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles, _chunk.GetChunkCoord());
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
@@ -217,11 +218,13 @@ namespace Spellbound.MarchingCubes {
 
                 var transitionJobHandle = transitionMarchingCubeJob.Schedule();
 
+                // CHANGED: Pass chunk coordinate to lock the data
                 _mcManager.RegisterTransitionJob(this,
                     transitionJobHandle,
                     transitionMarchingCubeJob.TransitionMeshingVertexData,
                     transitionMarchingCubeJob.TransitionTriangles,
-                    transitionMarchingCubeJob.TransitionRanges);
+                    transitionMarchingCubeJob.TransitionRanges,
+                    _chunk.GetChunkCoord());
             }
         }
 
