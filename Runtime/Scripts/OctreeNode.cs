@@ -189,15 +189,15 @@ namespace Spellbound.MarchingCubes {
                 ConfigBlob = _mcManager.McConfigBlob,
                 VoxelArray = VoxelData,
 
-                // New Allocation - Ensure this is disposed of after the job.
                 Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
-                // New Allocation - Ensure this is disposed of after the job.
                 Triangles = new NativeList<int>(Allocator.Persistent),
                 Lod = _lod,
                 Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
             };
             var jobHandle = marchingCubeJob.Schedule();
-            _mcManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles);
+
+            _mcManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles,
+                _chunk.GetChunkCoord());
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
@@ -205,9 +205,7 @@ namespace Spellbound.MarchingCubes {
                     ConfigBlob = _mcManager.McConfigBlob,
                     VoxelArray = VoxelData,
 
-                    // New Allocation - Ensure this is disposed of after the job.
                     TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent),
-
                     TransitionTriangles = new NativeList<int>(Allocator.Persistent),
                     TransitionRanges = new NativeArray<int2>(6, Allocator.Persistent),
 
@@ -221,7 +219,8 @@ namespace Spellbound.MarchingCubes {
                     transitionJobHandle,
                     transitionMarchingCubeJob.TransitionMeshingVertexData,
                     transitionMarchingCubeJob.TransitionTriangles,
-                    transitionMarchingCubeJob.TransitionRanges);
+                    transitionMarchingCubeJob.TransitionRanges,
+                    _chunk.GetChunkCoord());
             }
         }
 
