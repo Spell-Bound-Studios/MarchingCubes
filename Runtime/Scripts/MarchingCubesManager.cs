@@ -71,6 +71,7 @@ namespace Spellbound.MarchingCubes {
 
         private void LateUpdate() {
             OctreeBatchTransitionUpdate?.Invoke();
+            CompleteAndApplyMarchingCubesJobs();
         } 
 
         private void OnDestroy() {
