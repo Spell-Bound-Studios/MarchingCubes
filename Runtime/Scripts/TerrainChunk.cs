@@ -16,7 +16,8 @@ namespace Spellbound.MarchingCubes {
         private MarchingCubesManager _mcManager;
         private IVoxelTerrainChunkManager _chunkManager;
 
-        public NativeArray<VoxelData> GetVoxelDataArray() => _mcManager.GetOrUnpackVoxelArray(_chunkCoord, this, _sparseVoxels);
+        public NativeArray<VoxelData> GetVoxelDataArray() =>
+                _mcManager.GetOrUnpackVoxelArray(_chunkCoord, this, _sparseVoxels);
 
         public DensityRange GetDensityRange() => _densityRange;
 
@@ -47,7 +48,7 @@ namespace Spellbound.MarchingCubes {
             _sparseVoxels.Clear();
             _sparseVoxels.CopyFrom(voxels);
         }
-        
+
         public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3 pos, int index) {
             if (_bounds.Contains(pos)) {
                 _rootNode?.ValidateTransition(newLeaf, pos, McStaticHelper.GetTransitionFaceMask(index));
@@ -100,10 +101,8 @@ namespace Spellbound.MarchingCubes {
                 _densityRange.Encapsulate(voxelEdit.density); // Use voxelEdit.density directly
             }
 
-            if (hasAnyEdits) {
-                ValidateOctreeEdits(editBounds);
-            }
-            
+            if (hasAnyEdits) ValidateOctreeEdits(editBounds);
+
             _mcManager.PackVoxelArray();
             _mcManager.CompleteAndApplyMarchingCubesJobs();
         }

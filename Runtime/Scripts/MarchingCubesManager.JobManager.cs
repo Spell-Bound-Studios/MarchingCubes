@@ -1,3 +1,5 @@
+// Copyright 2025 Spellbound Studio Inc.
+
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Jobs;
@@ -5,13 +7,13 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public partial class MarchingCubesManager : MonoBehaviour
-    {
+    public partial class MarchingCubesManager : MonoBehaviour {
         private JobHandle _combinedJobHandle;
         private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
         private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
 
         private Dictionary<OctreeNode, Vector3Int> _nodeToChunkCoord = new();
+
         public void RegisterMarchJob(
             OctreeNode node,
             JobHandle jobHandle,
@@ -43,17 +45,14 @@ namespace Spellbound.MarchingCubes {
                 Ranges = ranges
             };
 
-            if (!_nodeToChunkCoord.ContainsKey(node)) {
-                _nodeToChunkCoord[node] = chunkCoord;
-            }
+            if (!_nodeToChunkCoord.ContainsKey(node)) _nodeToChunkCoord[node] = chunkCoord;
         }
 
         public void CompleteAndApplyMarchingCubesJobs() {
             ReleaseVoxelArray();
-            if (_pendingMarchJobData.Count == 0 && _pendingTransitionMarchJobData.Count == 0) {
-                return;
-            }
-            
+
+            if (_pendingMarchJobData.Count == 0 && _pendingTransitionMarchJobData.Count == 0) return;
+
             _combinedJobHandle.Complete();
 
             foreach (var kvp in _pendingTransitionMarchJobData) {
@@ -73,5 +72,3 @@ namespace Spellbound.MarchingCubes {
         }
     }
 }
-
-

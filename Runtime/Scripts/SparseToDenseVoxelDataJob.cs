@@ -1,6 +1,5 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -27,7 +26,8 @@ namespace Spellbound.MarchingCubes {
             var start = deckIndex * voxelsPerDeck;
             var end = start + voxelsPerDeck;
 
-            var rleIndex = McStaticHelper.BinarySearchVoxelData(start, ConfigBlob.Value.ChunkDataVolumeSize, SparseVoxels);
+            var rleIndex =
+                    McStaticHelper.BinarySearchVoxelData(start, ConfigBlob.Value.ChunkDataVolumeSize, SparseVoxels);
 
             while (rleIndex < SparseVoxels.Length) {
                 var rle = SparseVoxels[rleIndex];

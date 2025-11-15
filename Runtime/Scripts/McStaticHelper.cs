@@ -117,9 +117,10 @@ namespace Spellbound.MarchingCubes {
 
         public static List<MaterialType> GetAllMaterialTypes() =>
                 Enum.GetValues(typeof(MaterialType)).Cast<MaterialType>().ToList();
-        
+
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BinarySearchVoxelData(int targetIndex, int chunkDataVolumeSize, in NativeList<SparseVoxelData> sparseVoxels) {
+        public static int BinarySearchVoxelData(
+            int targetIndex, int chunkDataVolumeSize, in NativeList<SparseVoxelData> sparseVoxels) {
             int left = 0, right = sparseVoxels.Length - 1;
             var result = 0;
 

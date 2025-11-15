@@ -3,9 +3,7 @@
 using System;
 using System.Collections.Generic;
 using Spellbound.Core;
-using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -29,7 +27,7 @@ namespace Spellbound.MarchingCubes {
 
         [SerializeField] private bool useColliders = true;
         public bool UseColliders => useColliders;
-        
+
         public event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
@@ -51,9 +49,7 @@ namespace Spellbound.MarchingCubes {
             InitializeSharedIndicesLookup();
         }
 
-        private void LateUpdate() {
-            OctreeBatchTransitionUpdate?.Invoke();
-        }
+        private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
 
         private void OnDestroy() {
             _isShuttingDown = true;
@@ -152,7 +148,6 @@ namespace Spellbound.MarchingCubes {
 
                         var neighborIndex = McStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
-
 
                         if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
                             localNeighborEdits = new List<VoxelEdit>();

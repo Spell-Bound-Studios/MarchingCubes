@@ -21,7 +21,7 @@ namespace Spellbound.MarchingCubes {
         public void InitializeVoxelData(NativeList<SparseVoxelData> voxels);
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels);
-        
+
         public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3 pos, int index);
 
         public void AddToVoxelEdits(List<VoxelEdit> newVoxelEdits);
