@@ -49,7 +49,6 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void CompleteAndApplyMarchingCubesJobs() {
-
             if (_pendingMarchJobData.Count == 0 && _pendingTransitionMarchJobData.Count == 0) return;
 
             _combinedJobHandle.Complete();

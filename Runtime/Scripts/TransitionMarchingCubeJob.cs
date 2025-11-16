@@ -64,15 +64,11 @@ namespace Spellbound.MarchingCubes {
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
             for (var y = 0; y < config.CubesMarchedPerOctreeLeaf; y++) {
-                // Initialize specific cache slots at the start of each row
-                for (var initX = 0; initX < config.CubesMarchedPerOctreeLeaf; initX++) {
-                    transitionCurrentCache[0 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
-                    transitionCurrentCache[1 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
-                    transitionCurrentCache[2 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
-                    transitionCurrentCache[7 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
-                }
-
                 for (var x = 0; x < config.CubesMarchedPerOctreeLeaf; x++) {
+                    // Initialize ALL cache slots at the start of each cell
+                    for (var cacheSlot = 0; cacheSlot < 10; cacheSlot++)
+                        transitionCurrentCache[cacheSlot * config.CubesMarchedPerOctreeLeaf + x] = -1;
+
                     for (var i = 0; i < 13; i++) {
                         var offset = tables.TransitionCornerOffset[i];
 
@@ -140,8 +136,6 @@ namespace Spellbound.MarchingCubes {
                         }
 
                         if (!isVertexCacheable || vertexIndex == -1) {
-                            vertexIndex = TransitionMeshingVertexData.Length;
-
                             var cornerOffset0 = tables.TransitionCornerOffset[cornerIdx0];
                             var cornerOffset1 = tables.TransitionCornerOffset[cornerIdx1];
 
@@ -209,23 +203,22 @@ namespace Spellbound.MarchingCubes {
                             var color = c;
                             var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
 
-                            transitionVertexIndices[i] = vertexIndex;
+                            // Get the vertex index BEFORE adding (this will be the index after Add)
+                            vertexIndex = TransitionMeshingVertexData.Length;
 
-                            // Cache the vertex index before adding
-                            if (cacheDir == 8) {
+                            // Cache the vertex index
+                            if (cacheDir == 8)
                                 transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] = vertexIndex;
-                            }
-                            else if (isVertexCacheable && cacheDir != 4) {
-                                selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] = vertexIndex;
-                            }
+                            else if (isVertexCacheable && cacheDir != 4)
+                                selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
+                                        vertexIndex;
 
-                            // Add the vertex to the list AFTER caching its index
+                            // Add the vertex to the list AFTER getting its index
                             TransitionMeshingVertexData.Add(new MeshingVertexData(vertex, normal, color, colorInterp));
                         }
-                        else {
-                            // For cached vertices, still need to set the index
-                            transitionVertexIndices[i] = vertexIndex;
-                        }
+
+                        // Set the vertex index for this edge - ALWAYS happens, whether cached or new
+                        transitionVertexIndices[i] = vertexIndex;
                     }
 
                     var indexCount = tables.TransitionTriangleCount[cellClass & 0x7F];

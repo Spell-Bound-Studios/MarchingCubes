@@ -7,7 +7,7 @@ namespace Spellbound.MarchingCubes {
     public struct DensityRange {
         private byte _min;
         private byte _max;
-        private byte _densityThreshold;
+        private readonly byte _densityThreshold;
         private bool _isSkippable;
 
         public DensityRange(byte min, byte max, byte densityThreshold) {

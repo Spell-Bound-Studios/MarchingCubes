@@ -108,25 +108,16 @@ namespace Spellbound.MarchingCubes {
                             + Vector3.one * (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1));
             var targetLod = GetLodRange(octreePos, playerPosition);
 
-            /*
             if (_chunk.GetDensityRange().IsSkippable())
                 return;
-            
-
-            if (targetLod == -1) {
-                _leafGo?.SetActive(false);
-
-                return;
-            }
-            
-            */
 
             // should always be equals, because if it was smaller, then the parent would have been the equals
-            if (_lod <= targetLod) { 
-                if (_leafGo == null) 
+            if (_lod <= targetLod) {
+                if (_leafGo == null)
                     MakeLeaf(voxelArray);
-                
+
                 _leafGo?.SetActive(true);
+
                 return;
             }
 
@@ -142,6 +133,7 @@ namespace Spellbound.MarchingCubes {
 
             if (IsLeaf) {
                 UpdateLeaf(voxelArray);
+
                 return;
             }
 
@@ -311,7 +303,7 @@ namespace Spellbound.MarchingCubes {
             if (!_filteredTransitionTriangles.IsCreated)
                 _filteredTransitionTriangles = new NativeList<int>(Allocator.Persistent);
 
-            if (!_transitionRanges.IsCreated) 
+            if (!_transitionRanges.IsCreated)
                 _transitionRanges = new NativeArray<int2>(6, Allocator.Persistent);
         }
 

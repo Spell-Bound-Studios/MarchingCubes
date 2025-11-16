@@ -31,9 +31,6 @@ namespace Spellbound.MarchingCubes {
         public event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
-            
-            Application.targetFrameRate = 60;   // Cap at 60 FPS
-            
             if (_terrainConfig == null) {
                 Debug.LogError("Marching Cubes TerrainConfig is null");
 
@@ -46,7 +43,7 @@ namespace Spellbound.MarchingCubes {
 
             McChunkInterpolationBlob =
                     McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(_terrainConfig);
-            AllocateDenseBuffer(McConfigBlob.Value.ChunkDataVolumeSize);
+            AllocateArrays(McConfigBlob.Value.ChunkDataVolumeSize);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeSharedIndicesLookup();
@@ -67,7 +64,7 @@ namespace Spellbound.MarchingCubes {
                 McChunkInterpolationBlob.Dispose();
 
             ClearPool();
-            DisposeDenseBuffer();
+            DisposeArrays();
         }
 
         public GameObject GetPooledObject(Transform parent) {

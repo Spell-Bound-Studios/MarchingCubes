@@ -41,12 +41,13 @@ namespace Spellbound.MarchingCubes {
             if (Camera.main != null) ValidateOctreeLods(Camera.main.transform.position);
         }
 
-        public void UpdateVoxelData(NativeList<SparseVoxelData> voxels) {
+        public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)
                 return;
 
             _sparseVoxels.Clear();
             _sparseVoxels.CopyFrom(voxels);
+            _densityRange = densityRange;
         }
 
         public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3 pos, int index) {
@@ -129,7 +130,7 @@ namespace Spellbound.MarchingCubes {
         // TODO: Null checking twice is weird.
         public void ValidateOctreeEdits(Bounds bounds) {
             ref var config = ref _mcManager.McConfigBlob.Value;
-            
+
             var worldBounds = new Bounds(bounds.center + _chunkCoord * config.ChunkSize, bounds.size);
             _rootNode?.ValidateOctreeEdits(worldBounds, GetVoxelDataArray());
         }
