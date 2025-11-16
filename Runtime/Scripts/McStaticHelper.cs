@@ -67,7 +67,8 @@ namespace Spellbound.MarchingCubes {
             }
 
             // If distance is beyond all ranges, return -1
-            return -1;
+            // return - 1;
+            return lodRanges.Length - 1;
         }
 
         public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize) =>

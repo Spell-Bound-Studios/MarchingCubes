@@ -38,7 +38,7 @@ namespace Spellbound.MarchingCubes {
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
             _rootNode = new OctreeNode(Vector3Int.zero, _mcManager.McConfigBlob.Value.LevelsOfDetail, this);
-            ValidateOctreeLods(Camera.main.transform.position);
+            if (Camera.main != null) ValidateOctreeLods(Camera.main.transform.position);
         }
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels) {
@@ -129,19 +129,16 @@ namespace Spellbound.MarchingCubes {
         // TODO: Null checking twice is weird.
         public void ValidateOctreeEdits(Bounds bounds) {
             ref var config = ref _mcManager.McConfigBlob.Value;
-
-            if (_rootNode == null)
-                _rootNode = new OctreeNode(Vector3Int.zero, config.LevelsOfDetail, this);
-
+            
             var worldBounds = new Bounds(bounds.center + _chunkCoord * config.ChunkSize, bounds.size);
-            _rootNode.ValidateOctreeEdits(worldBounds);
+            _rootNode?.ValidateOctreeEdits(worldBounds, GetVoxelDataArray());
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
             if (!_sparseVoxels.IsCreated)
                 return;
 
-            _rootNode.ValidateOctreeLods(playerPosition);
+            _rootNode.ValidateOctreeLods(playerPosition, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
         }
 
