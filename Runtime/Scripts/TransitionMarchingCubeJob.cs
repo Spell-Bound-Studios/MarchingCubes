@@ -65,10 +65,6 @@ namespace Spellbound.MarchingCubes {
 
             for (var y = 0; y < config.CubesMarchedPerOctreeLeaf; y++) {
                 for (var x = 0; x < config.CubesMarchedPerOctreeLeaf; x++) {
-                    // Initialize ALL cache slots at the start of each cell
-                    for (var cacheSlot = 0; cacheSlot < 10; cacheSlot++)
-                        transitionCurrentCache[cacheSlot * config.CubesMarchedPerOctreeLeaf + x] = -1;
-
                     for (var i = 0; i < 13; i++) {
                         var offset = tables.TransitionCornerOffset[i];
 
@@ -92,7 +88,13 @@ namespace Spellbound.MarchingCubes {
                                    | (transitionCellValues[3].Density >= config.DensityThreshold ? 128 : 0)
                                    | (transitionCellValues[4].Density >= config.DensityThreshold ? 256 : 0);
 
-                    if (caseCode == 0 || caseCode == 511) continue;
+                    transitionCurrentCache[0 * config.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[1 * config.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[2 * config.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[7 * config.CubesMarchedPerOctreeLeaf + x] = -1;
+
+                    if (caseCode == 0 || caseCode == 511)
+                        continue;
 
                     var cacheValidator = (x != 0 ? 0b01 : 0)
                                          | (y != 0 ? 0b10 : 0);
@@ -105,19 +107,15 @@ namespace Spellbound.MarchingCubes {
                         var edgeCode = edgeCodes[i];
                         var cornerIdx0 = (ushort)((edgeCode >> 4) & 0x0F);
                         var cornerIdx1 = (ushort)(edgeCode & 0x0F);
-
-                        float density0 = transitionCellValues[cornerIdx0].Density;
-                        float density1 = transitionCellValues[cornerIdx1].Density;
-
                         var cacheIdx = (byte)((edgeCode >> 8) & 0x0F);
                         var cacheDir = (byte)(edgeCode >> 12);
 
-                        if (density1 == 0) {
+                        if (transitionCellValues[cornerIdx1].Density == config.DensityThreshold) {
                             var trCornerData = tables.TransitionCornerData[cornerIdx1];
                             cacheDir = (byte)((trCornerData >> 4) & 0x0F);
                             cacheIdx = (byte)(trCornerData & 0x0F);
                         }
-                        else if (density0 == 0) {
+                        else if (transitionCellValues[cornerIdx0].Density == config.DensityThreshold) {
                             var trCornerData = tables.TransitionCornerData[cornerIdx0];
                             cacheDir = (byte)((trCornerData >> 4) & 0x0F);
                             cacheIdx = (byte)(trCornerData & 0x0F);
@@ -136,6 +134,11 @@ namespace Spellbound.MarchingCubes {
                         }
 
                         if (!isVertexCacheable || vertexIndex == -1) {
+                            float3 vertex;
+                            float3 normal;
+                            Color32 color;
+                            vertexIndex = TransitionMeshingVertexData.Length;
+
                             var cornerOffset0 = tables.TransitionCornerOffset[cornerIdx0];
                             var cornerOffset1 = tables.TransitionCornerOffset[cornerIdx1];
 
@@ -196,28 +199,31 @@ namespace Spellbound.MarchingCubes {
 
                             t = math.clamp(t, 0, 1); // safety clamp
 
-                            var vertex = math.lerp(corner0Copy, corner1Copy, t);
+                            vertex = math.lerp(corner0Copy, corner1Copy, t);
 
                             GetNormalAndColor(corner0Copy, corner1Copy, t, out var n, out var c);
-                            var normal = n;
-                            var color = c;
+                            normal = n;
+                            color = c;
                             var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
 
-                            // Get the vertex index BEFORE adding (this will be the index after Add)
-                            vertexIndex = TransitionMeshingVertexData.Length;
+                            if (bIsLowResFace) {
+                                if (cacheDir == 8)
+                                    transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] =
+                                            vertexIndex;
+                                else if (isVertexCacheable)
+                                    selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
+                                            vertexIndex;
+                            }
 
-                            // Cache the vertex index
                             if (cacheDir == 8)
                                 transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] = vertexIndex;
                             else if (isVertexCacheable && cacheDir != 4)
                                 selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
                                         vertexIndex;
 
-                            // Add the vertex to the list AFTER getting its index
                             TransitionMeshingVertexData.Add(new MeshingVertexData(vertex, normal, color, colorInterp));
                         }
 
-                        // Set the vertex index for this edge - ALWAYS happens, whether cached or new
                         transitionVertexIndices[i] = vertexIndex;
                     }
 

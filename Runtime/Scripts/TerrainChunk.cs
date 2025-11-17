@@ -106,6 +106,7 @@ namespace Spellbound.MarchingCubes {
 
             _mcManager.PackVoxelArray();
             _mcManager.CompleteAndApplyMarchingCubesJobs();
+            _mcManager.ReleaseVoxelArray();
         }
 
         public VoxelData GetVoxelData(int index) {
@@ -141,6 +142,7 @@ namespace Spellbound.MarchingCubes {
 
             _rootNode.ValidateOctreeLods(playerPosition, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
+            _mcManager.ReleaseVoxelArray();
         }
 
         private void OnDrawGizmos() => Gizmos.DrawWireCube(_bounds.center, _bounds.size);

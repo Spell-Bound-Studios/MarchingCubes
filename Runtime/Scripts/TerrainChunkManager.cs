@@ -94,7 +94,6 @@ namespace Spellbound.MarchingCubes {
 
         private IEnumerator ValidateChunkLods() {
             while (true) {
-                var count = 0;
                 var chunkList = new List<Vector3Int>(_chunkDict.Keys.ToList());
 
                 foreach (var coord in chunkList) {
@@ -108,16 +107,8 @@ namespace Spellbound.MarchingCubes {
                         continue;
 
                     chunk.ValidateOctreeLods(Camera.main.transform.position);
-
-                    count++;
-
-                    if (count >= 1) {
-                        count = 0;
-
-                        yield return null;
-                    }
+                    yield return null;
                 }
-
                 yield return null;
             }
         }
