@@ -9,7 +9,9 @@ namespace Spellbound.MarchingCubes {
     /// Blob Asset to hold Marching Cubes Settings.
     /// </summary>
     public struct McConfigBlobAsset {
+        public float Resolution;
         public int ChunkSize;
+        public int ChunkSizeResolution;
         public int LevelsOfDetail;
         public int CubesMarchedPerOctreeLeaf;
         public int ChunkDataWidthSize;
@@ -28,15 +30,17 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref builder.ConstructRoot<McConfigBlobAsset>();
 
             // TODO: max may not be used if they clash with eachother or with this max view distance
+            config.Resolution = terrainConfig.resolution;
             config.ChunkSize = terrainConfig.chunkSize;
+            config.ChunkSizeResolution = Mathf.RoundToInt(terrainConfig.resolution * terrainConfig.chunkSize);
             config.LevelsOfDetail = terrainConfig.lods - 1;
 
             config.CubesMarchedPerOctreeLeaf = terrainConfig.cubesPerMarch;
             config.ChunkDataWidthSize = config.ChunkSize + 3;
             config.ChunkDataAreaSize = config.ChunkDataWidthSize * config.ChunkDataWidthSize;
             config.ChunkDataVolumeSize = config.ChunkDataAreaSize * config.ChunkDataWidthSize;
-            config.ChunkCenter = Vector3Int.one * (1 + config.ChunkSize / 2);
-            config.ChunkExtents = Vector3Int.one * config.ChunkSize;
+            config.ChunkCenter = Vector3Int.one * (1 + config.ChunkSizeResolution / 2);
+            config.ChunkExtents = Vector3Int.one * config.ChunkSizeResolution;
             config.DensityThreshold = (byte)(terrainConfig.marchingCubeDensityThreshold * byte.MaxValue);
 
             var lodRangesBuilder =

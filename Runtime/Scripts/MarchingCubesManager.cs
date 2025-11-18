@@ -178,16 +178,12 @@ namespace Spellbound.MarchingCubes {
             var chunk = chunkManager.GetChunkByPosition(position);
 
             if (chunk == null) return new VoxelData();
-
-            var positionRounded = new Vector3Int(
-                Mathf.RoundToInt(position.x),
-                Mathf.RoundToInt(position.y),
-                Mathf.RoundToInt(position.z));
+            
 
             if (!chunk.HasVoxelData())
                 return new VoxelData();
 
-            return chunk.GetVoxelData(positionRounded);
+            return chunk.GetVoxelData(position);
         }
 
         private void InitializeSharedIndicesLookup() {

@@ -18,7 +18,7 @@ namespace Spellbound.MarchingCubes {
 
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position) {
             var coord = McStaticHelper.WorldToChunk(position,
-                SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize);
+                SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSizeResolution);
 
             return GetChunkByCoord(coord);
         }
@@ -78,9 +78,10 @@ namespace Spellbound.MarchingCubes {
         }
 
         private IVoxelTerrainChunk CreateNChunk(Vector3Int chunkCoord) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
             var chunkObj = Instantiate(
                 _chunkPrefab,
-                chunkCoord * SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize,
+                chunkCoord * config.ChunkSizeResolution,
                 Quaternion.identity,
                 transform
             );
