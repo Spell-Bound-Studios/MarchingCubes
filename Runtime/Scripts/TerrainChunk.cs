@@ -90,7 +90,7 @@ namespace Spellbound.MarchingCubes {
 
                 McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
-                var localPos = new Vector3Int(x, y, z);
+                var localPos = new Vector3(x, y, z) * config.Resolution;
 
                 if (!hasAnyEdits) {
                     editBounds = new Bounds(localPos, Vector3.zero);
@@ -116,11 +116,17 @@ namespace Spellbound.MarchingCubes {
             return _sparseVoxels[sparseIndex].Voxel;
         }
 
-        public VoxelData GetVoxelData(Vector3Int position) {
+        public VoxelData GetVoxelData(Vector3 position) {
             ref var config = ref _mcManager.McConfigBlob.Value;
-            var localPos = position - _chunkCoord * config.ChunkSize;
 
-            var index = McStaticHelper.Coord3DToIndex(localPos.x, localPos.y, localPos.z, config.ChunkDataAreaSize,
+            var normalizedPosition = new Vector3Int(
+                Mathf.RoundToInt(position.x / config.Resolution),
+                Mathf.RoundToInt(position.y / config.Resolution),
+                Mathf.RoundToInt(position.z / config.Resolution)
+            );
+
+            var index = McStaticHelper.Coord3DToIndex(normalizedPosition.x, normalizedPosition.y, normalizedPosition.z,
+                config.ChunkDataAreaSize,
                 config.ChunkDataWidthSize);
 
             return GetVoxelData(index);
@@ -132,7 +138,7 @@ namespace Spellbound.MarchingCubes {
         public void ValidateOctreeEdits(Bounds bounds) {
             ref var config = ref _mcManager.McConfigBlob.Value;
 
-            var worldBounds = new Bounds(bounds.center + _chunkCoord * config.ChunkSize, bounds.size);
+            var worldBounds = new Bounds(bounds.center + _chunkCoord * config.ChunkSizeResolution, bounds.size);
             _rootNode?.ValidateOctreeEdits(worldBounds, GetVoxelDataArray());
         }
 
@@ -154,8 +160,8 @@ namespace Spellbound.MarchingCubes {
             _chunkCoord = coord;
 
             _bounds = new Bounds(
-                coord * config.ChunkSize + config.ChunkCenter,
-                config.ChunkExtents);
+                coord * config.ChunkSizeResolution + (Vector3)config.ChunkCenter * config.Resolution,
+                (Vector3)config.ChunkExtents * config.Resolution);
             gameObject.name = coord.ToString();
         }
 

@@ -32,17 +32,20 @@ namespace Spellbound.MarchingCubes {
         private readonly MarchingCubesManager _mcManager;
 
         private bool IsLeaf => _children == null;
-        private Vector3Int WorldPosition => _chunk.GetChunkCoord() * _mcManager.McConfigBlob.Value.ChunkSize;
+        private Vector3Int WorldPosition => _chunk.GetChunkCoord() * _mcManager.McConfigBlob.Value.ChunkSizeResolution;
 
         public OctreeNode(Vector3Int localPosition, int lod, IVoxelTerrainChunk chunk) {
             _localPosition = localPosition;
             _lod = lod;
             _chunk = chunk;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            ref var config = ref _mcManager.McConfigBlob.Value;
 
-            var octreeSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf * math.pow(2, _lod) + 2;
+            var octreeSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf * config.Resolution *
+                    math.pow(2, _lod) + 2;
 
-            _bounds = new Bounds(WorldPosition + _localPosition + Vector3.one * octreeSize / 2,
+            _bounds = new Bounds(
+                WorldPosition + (Vector3)_localPosition * config.Resolution + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
         }
 
@@ -103,9 +106,12 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
+            ref var config = ref _mcManager.McConfigBlob.Value;
+
             var octreePos = WorldPosition
-                            + _localPosition
-                            + Vector3.one * (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1));
+                            + (Vector3)_localPosition * config.Resolution
+                            + Vector3.one * (config.Resolution *
+                                             (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1)));
             var targetLod = GetLodRange(octreePos, playerPosition);
 
             if (_chunk.GetDensityRange().IsSkippable())
@@ -391,15 +397,18 @@ namespace Spellbound.MarchingCubes {
             for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeafAcrossChunks(this, neighborPositions[i], i);
         }
 
-        private Vector3[] GetFaceCenters() =>
-                new[] {
-                    new Vector3(_bounds.min.x - 1, _bounds.center.y, _bounds.center.z),
-                    new Vector3(_bounds.center.x, _bounds.min.y - 1, _bounds.center.z),
-                    new Vector3(_bounds.center.x, _bounds.center.y, _bounds.min.z - 1),
-                    new Vector3(_bounds.max.x + 1, _bounds.center.y, _bounds.center.z),
-                    new Vector3(_bounds.center.x, _bounds.max.y + 1, _bounds.center.z),
-                    new Vector3(_bounds.center.x, _bounds.center.y, _bounds.max.z + 1)
-                };
+        private Vector3[] GetFaceCenters() {
+            ref var config = ref _mcManager.McConfigBlob.Value;
+
+            return new[] {
+                new Vector3(_bounds.min.x - config.Resolution, _bounds.center.y, _bounds.center.z),
+                new Vector3(_bounds.center.x, _bounds.min.y - config.Resolution, _bounds.center.z),
+                new Vector3(_bounds.center.x, _bounds.center.y, _bounds.min.z - config.Resolution),
+                new Vector3(_bounds.max.x + config.Resolution, _bounds.center.y, _bounds.center.z),
+                new Vector3(_bounds.center.x, _bounds.max.y + config.Resolution, _bounds.center.z),
+                new Vector3(_bounds.center.x, _bounds.center.y, _bounds.max.z + config.Resolution)
+            };
+        }
 
         private McStaticHelper.TransitionFaceMask GetOppositeTransition(
             McStaticHelper.TransitionFaceMask transitionMask) =>

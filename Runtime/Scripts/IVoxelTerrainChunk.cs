@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
 
         public VoxelData GetVoxelData(int index);
 
-        public VoxelData GetVoxelData(Vector3Int position);
+        public VoxelData GetVoxelData(Vector3 position);
 
         public bool HasVoxelData();
 

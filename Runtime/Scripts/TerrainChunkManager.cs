@@ -17,8 +17,8 @@ namespace Spellbound.MarchingCubes {
         private NativeList<SparseVoxelData> _dummyData;
 
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position) {
-            var coord = McStaticHelper.WorldToChunk(position,
-                SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize);
+            ref var config =  ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+            var coord = McStaticHelper.WorldToChunk(position, config.ChunkSizeResolution, config.Resolution);
 
             return GetChunkByCoord(coord);
         }
@@ -78,9 +78,11 @@ namespace Spellbound.MarchingCubes {
         }
 
         private IVoxelTerrainChunk CreateNChunk(Vector3Int chunkCoord) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+
             var chunkObj = Instantiate(
                 _chunkPrefab,
-                chunkCoord * SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize,
+                chunkCoord * config.ChunkSizeResolution,
                 Quaternion.identity,
                 transform
             );
@@ -103,12 +105,14 @@ namespace Spellbound.MarchingCubes {
                     if (!chunk.HasVoxelData())
                         continue;
 
-                    if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager))
+                    if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
                         continue;
 
                     chunk.ValidateOctreeLods(Camera.main.transform.position);
+
                     yield return null;
                 }
+
                 yield return null;
             }
         }
