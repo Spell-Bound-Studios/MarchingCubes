@@ -21,7 +21,9 @@ namespace Spellbound.MarchingCubes {
         public static bool IsInsideTerrain(Vector3 position) {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
 
-            return mcManager.QueryVoxel(position).Density >= mcManager.McConfigBlob.Value.DensityThreshold;
+            //return mcManager.QueryVoxel(position).Density >= mcManager.McConfigBlob.Value.DensityThreshold;
+
+            return false;
         }
 
         public static void RemoveSphere(Vector3 position) {

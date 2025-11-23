@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Spellbound.Core;
 using UnityEngine;
 
@@ -14,31 +13,39 @@ namespace Spellbound.MarchingCubes {
             int delta) {
 
             return (iVoxelVolume) => {
-                var resolution = 1;
-                var localPos = iVoxelVolume.GetTransform().InverseTransformPoint(worldPosition);
-                var rawVoxelEdits = new List<RawVoxelEdit>();
-                var normalizedPosition = localPos / resolution;
-                var normalizedRadius = radius / resolution;
+                ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
                 
-                var center = normalizedPosition;
-                var r = Mathf.CeilToInt(normalizedRadius);
-                var radiusSq = normalizedRadius * normalizedRadius;
+                // Convert world position to volume-local space
+                var localPos = iVoxelVolume.GetTransform().InverseTransformPoint(worldPosition);
+                
+                // Convert to voxel coordinates
+                var voxelCenter = new Vector3(
+                    localPos.x / config.Resolution,
+                    localPos.y / config.Resolution,
+                    localPos.z / config.Resolution
+                );
+                
+                var rawVoxelEdits = new List<RawVoxelEdit>();
+                var radiusVoxels = radius / config.Resolution;
+                
+                var r = Mathf.CeilToInt(radiusVoxels);
+                var radiusSq = radiusVoxels * radiusVoxels;
                 
                 for (var x = -r; x <= r; x++) {
                     for (var y = -r; y <= r; y++) {
                         for (var z = -r; z <= r; z++) {
-                            // Voxel position in normalized space
+                            // Voxel position in volume-relative voxel space
                             var voxelPos = new Vector3Int(
-                                Mathf.RoundToInt(center.x) + x,
-                                Mathf.RoundToInt(center.y) + y,
-                                Mathf.RoundToInt(center.z) + z
+                                Mathf.RoundToInt(voxelCenter.x) + x,
+                                Mathf.RoundToInt(voxelCenter.y) + y,
+                                Mathf.RoundToInt(voxelCenter.z) + z
                             );
 
                             // Distance from exact center (not rounded)
                             var offset = new Vector3(
-                                voxelPos.x - center.x,
-                                voxelPos.y - center.y,
-                                voxelPos.z - center.z
+                                voxelPos.x - voxelCenter.x,
+                                voxelPos.y - voxelCenter.y,
+                                voxelPos.z - voxelCenter.z
                             );
 
                             var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
@@ -47,7 +54,7 @@ namespace Spellbound.MarchingCubes {
                                 continue;
 
                             var dist = Mathf.Sqrt(distSq);
-                            var falloff = 1f - dist / normalizedRadius;
+                            var falloff = 1f - dist / radiusVoxels;
                             var adjustedDelta = Mathf.RoundToInt(delta * falloff);
 
                             if (adjustedDelta != 0)
@@ -66,29 +73,37 @@ namespace Spellbound.MarchingCubes {
             int delta) {
 
             return (iVoxelVolume) => {
-                var resolution = 1;
+                ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+                
+                // Convert world position to volume-local space
                 var localPos = iVoxelVolume.GetTransform().InverseTransformPoint(worldPosition);
+                
+                // Convert to voxel coordinates
+                var voxelCenter = new Vector3(
+                    localPos.x / config.Resolution,
+                    localPos.y / config.Resolution,
+                    localPos.z / config.Resolution
+                );
+                
                 var rawVoxelEdits = new List<RawVoxelEdit>();
-                var normalizedPosition = localPos / resolution;
-                var normalizedRadius = radius / resolution;
+                var radiusVoxels = radius / config.Resolution;
         
-                var center = normalizedPosition;
-                var r = Mathf.CeilToInt(normalizedRadius);
-                var radiusSq = normalizedRadius * normalizedRadius;
+                var r = Mathf.CeilToInt(radiusVoxels);
+                var radiusSq = radiusVoxels * radiusVoxels;
         
                 for (var x = -r; x <= r; x++) {
                     for (var y = -r; y <= r; y++) {
                         for (var z = -r; z <= r; z++) {
                             var voxelPos = new Vector3Int(
-                                Mathf.RoundToInt(center.x) + x,
-                                Mathf.RoundToInt(center.y) + y,
-                                Mathf.RoundToInt(center.z) + z
+                                Mathf.RoundToInt(voxelCenter.x) + x,
+                                Mathf.RoundToInt(voxelCenter.y) + y,
+                                Mathf.RoundToInt(voxelCenter.z) + z
                             );
 
                             var offset = new Vector3(
-                                voxelPos.x - center.x,
-                                voxelPos.y - center.y,
-                                voxelPos.z - center.z
+                                voxelPos.x - voxelCenter.x,
+                                voxelPos.y - voxelCenter.y,
+                                voxelPos.z - voxelCenter.z
                             );
 
                             var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
@@ -97,7 +112,7 @@ namespace Spellbound.MarchingCubes {
                                 continue;
 
                             var dist = Mathf.Sqrt(distSq);
-                            var falloff = 1f - dist / normalizedRadius;
+                            var falloff = 1f - dist / radiusVoxels;
                             var adjustedDelta = Mathf.RoundToInt(delta * falloff);
 
                             if (adjustedDelta != 0)

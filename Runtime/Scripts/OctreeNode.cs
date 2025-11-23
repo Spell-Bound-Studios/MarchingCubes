@@ -25,15 +25,14 @@ namespace Spellbound.MarchingCubes {
         private NativeList<int> _allTransitionTriangles;
         private NativeList<int> _filteredTransitionTriangles;
         private NativeArray<int2> _transitionRanges;
-        private Vector3Int _localPosition;
+        private Vector3Int _localPosition;  // Chunk-local voxel position
         private readonly int _lod;
-        private Bounds _bounds;
+        private BoundsInt _boundsVoxel;  // Chunk-local voxel space bounds
         private readonly IVoxelTerrainChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
         private readonly Transform _volumeOriginTransform;
 
         private bool IsLeaf => _children == null;
-        private Vector3 WorldPosition => _chunk.GetChunkTransform().position;
 
         public OctreeNode(Vector3Int localPosition, int lod, IVoxelTerrainChunk chunk, Transform volumeOriginTransform) {
             _volumeOriginTransform = volumeOriginTransform;
@@ -41,14 +40,17 @@ namespace Spellbound.MarchingCubes {
             _lod = lod;
             _chunk = chunk;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            
+            // Bounds in chunk-local voxel space
+            var octreeSizeVoxels = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod;
+            _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
+        }
+
+        private Vector3 GetWorldCenterPosition() {
             ref var config = ref _mcManager.McConfigBlob.Value;
-
-            var octreeSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf * config.Resolution *
-                    math.pow(2, _lod) + 2;
-
-            _bounds = new Bounds(
-                _chunk.GetChunkCoord() * _mcManager.McConfigBlob.Value.ChunkSizeResolution+ (Vector3)_localPosition * config.Resolution + Vector3.one * octreeSize / 2,
-                Vector3.one * octreeSize);
+            // Convert voxel bounds center to chunk-local Unity space, then to world space
+            var localCenter = ((Vector3)_boundsVoxel.min + (Vector3)_boundsVoxel.max) / 2f * config.Resolution;
+            return _chunk.GetChunkTransform().TransformPoint(localCenter);
         }
 
         public void Dispose() {
@@ -134,16 +136,9 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            ref var config = ref _mcManager.McConfigBlob.Value;
-
-// Rotate the local position offset by the chunk's rotation
-            var localOffset = (Vector3)_localPosition * config.Resolution
-                              + Vector3.one * (config.Resolution *
-                                               (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1)));
-    
-            var rotatedOffset = _chunk.GetChunkTransform().rotation * localOffset;
-            var octreePos = WorldPosition + rotatedOffset;
-            var targetLod = GetLodRange(octreePos, playerPosition);
+            // Calculate world position of this octree node for LOD distance check
+            var octreeWorldPos = GetWorldCenterPosition();
+            var targetLod = GetLodRange(octreeWorldPos, playerPosition);
 
             if (_chunk.GetDensityRange().IsSkippable())
                 return;
@@ -165,27 +160,34 @@ namespace Spellbound.MarchingCubes {
                 child.ValidateOctreeLods(playerPosition, voxelArray);
         }
 
-        public void ValidateOctreeEdits(Bounds bounds, NativeArray<VoxelData> voxelArray) {
-            if (!bounds.Intersects(_bounds)) return;
+        public void ValidateOctreeEdits(BoundsInt boundsVoxel, NativeArray<VoxelData> voxelArray) {
+            // Check if edit bounds (chunk-local voxel space) intersect this node's bounds
+            if (!BoundsIntersect(_boundsVoxel, boundsVoxel)) 
+                return;
 
             if (IsLeaf) {
                 UpdateLeaf(voxelArray);
-
                 return;
             }
 
             foreach (var child in _children)
-                child.ValidateOctreeEdits(bounds, voxelArray);
+                child.ValidateOctreeEdits(boundsVoxel, voxelArray);
+        }
+
+        private bool BoundsIntersect(BoundsInt a, BoundsInt b) {
+            return (a.min.x <= b.max.x && a.max.x >= b.min.x) &&
+                   (a.min.y <= b.max.y && a.max.y >= b.min.y) &&
+                   (a.min.z <= b.max.z && a.max.z >= b.min.z);
         }
 
         public void ValidateTransition(
-            OctreeNode neighbor, Vector3 facePos, McStaticHelper.TransitionFaceMask faceMask) {
-            if (!_bounds.Contains(facePos))
+            OctreeNode neighbor, Vector3Int voxelPos, McStaticHelper.TransitionFaceMask faceMask) {
+            if (!_boundsVoxel.Contains(voxelPos))
                 return;
 
             if (!IsLeaf) {
                 foreach (var child in _children)
-                    child.ValidateTransition(neighbor, facePos, faceMask);
+                    child.ValidateTransition(neighbor, voxelPos, faceMask);
 
                 return;
             }
@@ -277,7 +279,6 @@ namespace Spellbound.MarchingCubes {
             _mesh = new Mesh();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
 
-
             _leafGo.name = $"LeafSize {_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
         }
@@ -325,13 +326,11 @@ namespace Spellbound.MarchingCubes {
 
         private void BuildTransitions() {
             _transitionGo = _mcManager.GetPooledObject(_leafGo.transform);
-            _transitionGo.transform.localPosition = Vector3.zero;  // Position relative to parent chunk
+            _transitionGo.transform.localPosition = Vector3.zero;
             _transitionGo.transform.localRotation = Quaternion.identity;
 
             _transitionMesh = new Mesh();
             _transitionGo.GetComponent<MeshFilter>().mesh = _transitionMesh;
-            //_transitionGo.GetComponent<MeshCollider>().sharedMesh = _transitionMesh;
-            
 
             _transitionGo.name = $"Transition " +
                                  $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
@@ -429,20 +428,23 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BroadcastNewLeaf() {
-            var neighborPositions = GetFaceCenters();
-            for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeafAcrossChunks(this, neighborPositions[i], i);
+            var neighborVoxelPositions = GetFaceCentersVoxel();
+            for (var i = 0; i < 6; i++) 
+                _chunk.BroadcastNewLeafAcrossChunks(this, neighborVoxelPositions[i], i);
         }
 
-        private Vector3[] GetFaceCenters() {
-            ref var config = ref _mcManager.McConfigBlob.Value;
-
+        private Vector3Int[] GetFaceCentersVoxel() {
+            // Face centers should be at the middle of each face, ON the boundary
+            var center = (_boundsVoxel.min + _boundsVoxel.max) / 2;
+            var halfSize = _boundsVoxel.size / 2;
+    
             return new[] {
-                new Vector3(_bounds.min.x - config.Resolution, _bounds.center.y, _bounds.center.z),
-                new Vector3(_bounds.center.x, _bounds.min.y - config.Resolution, _bounds.center.z),
-                new Vector3(_bounds.center.x, _bounds.center.y, _bounds.min.z - config.Resolution),
-                new Vector3(_bounds.max.x + config.Resolution, _bounds.center.y, _bounds.center.z),
-                new Vector3(_bounds.center.x, _bounds.max.y + config.Resolution, _bounds.center.z),
-                new Vector3(_bounds.center.x, _bounds.center.y, _bounds.max.z + config.Resolution)
+                new Vector3Int(_boundsVoxel.min.x - 1, center.y, center.z), // XMin face (outside left)
+                new Vector3Int(center.x, _boundsVoxel.min.y - 1, center.z), // YMin face (outside bottom)
+                new Vector3Int(center.x, center.y, _boundsVoxel.min.z - 1), // ZMin face (outside back)
+                new Vector3Int(_boundsVoxel.max.x, center.y, center.z),     // XMax face (outside right)
+                new Vector3Int(center.x, _boundsVoxel.max.y, center.z),     // YMax face (outside top)
+                new Vector3Int(center.x, center.y, _boundsVoxel.max.z),     // ZMax face (outside front)
             };
         }
 

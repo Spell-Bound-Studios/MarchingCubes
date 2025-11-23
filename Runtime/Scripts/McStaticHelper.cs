@@ -71,11 +71,11 @@ namespace Spellbound.MarchingCubes {
             return lodRanges.Length - 1;
         }
 
-        public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize, float resolution) =>
+        public static Vector3Int VoxelToChunk(Vector3 pos, int chunkSize) =>
                 new(
-                    Mathf.FloorToInt((pos.x - resolution) / chunkSize),
-                    Mathf.FloorToInt((pos.y - resolution) / chunkSize),
-                    Mathf.FloorToInt((pos.z - resolution) / chunkSize)
+                    Mathf.FloorToInt((pos.x - 1) / chunkSize),
+                    Mathf.FloorToInt((pos.y - 1) / chunkSize),
+                    Mathf.FloorToInt((pos.z - 1) / chunkSize)
                 );
 
         /*

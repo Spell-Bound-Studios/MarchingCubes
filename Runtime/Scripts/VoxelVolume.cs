@@ -16,14 +16,41 @@ namespace Spellbound.MarchingCubes {
 
         private NativeList<SparseVoxelData> _dummyData;
 
-        public IVoxelTerrainChunk GetChunkByPosition(Vector3 position) {
-            ref var config =  ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
-            var coord = McStaticHelper.WorldToChunk(position, config.ChunkSizeResolution, config.Resolution);
-
+        public IVoxelTerrainChunk GetChunkByVoxelPosition(Vector3Int voxelPos) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+            var coord = McStaticHelper.VoxelToChunk(voxelPos, config.ChunkSize);
             return GetChunkByCoord(coord);
+        }
+        
+        public IVoxelTerrainChunk GetChunkByWorldPosition(Vector3 worldPos) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+    
+            // Convert world to volume-local space
+            var localPos = transform.InverseTransformPoint(worldPos);
+    
+            // Convert to voxel coordinates
+            var voxelPos = new Vector3Int(
+                Mathf.FloorToInt(localPos.x / config.Resolution),
+                Mathf.FloorToInt(localPos.y / config.Resolution),
+                Mathf.FloorToInt(localPos.z / config.Resolution)
+            );
+    
+            return GetChunkByVoxelPosition(voxelPos);
         }
 
         public IVoxelTerrainChunk GetChunkByCoord(Vector3Int coord) => _chunkDict.GetValueOrDefault(coord);
+
+        public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+            
+            var localPos = transform.InverseTransformPoint(worldPosition);
+            
+            return new Vector3Int(
+                Mathf.FloorToInt(localPos.x / config.Resolution),
+                Mathf.FloorToInt(localPos.y / config.Resolution),
+                Mathf.FloorToInt(localPos.z / config.Resolution)
+            );
+        }
         
         private void Start() {
             if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
@@ -59,14 +86,16 @@ namespace Spellbound.MarchingCubes {
 
             ref var config = ref mcManager.McConfigBlob.Value;
 
+            var halfChunk = config.ChunkSize / 2;
+
             _dummyData = new NativeList<SparseVoxelData>(Allocator.Persistent);
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand), 0));
 
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Dirt),
-                config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 12)));
+                config.ChunkDataAreaSize * (halfChunk - 8)));
 
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MinValue, MaterialType.Dirt),
-                config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 4)));
+                config.ChunkDataAreaSize * halfChunk));
         }
 
         private IEnumerator Initialize() {
@@ -93,9 +122,12 @@ namespace Spellbound.MarchingCubes {
         private IVoxelTerrainChunk CreateNChunk(Vector3Int chunkCoord) {
             ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
 
+            var localChunkPos = (Vector3)(chunkCoord * config.ChunkSizeResolution);
+            var worldChunkPos = transform.TransformPoint(localChunkPos);
+
             var chunkObj = Instantiate(
                 _chunkPrefab,
-                transform.position + chunkCoord * config.ChunkSizeResolution,
+                worldChunkPos,
                 transform.rotation,
                 transform
             );
@@ -121,6 +153,7 @@ namespace Spellbound.MarchingCubes {
                     if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
                         continue;
 
+                    // playerPosition is in world space for LOD distance calculations
                     chunk.ValidateOctreeLods(Camera.main.transform.position);
 
                     yield return null;

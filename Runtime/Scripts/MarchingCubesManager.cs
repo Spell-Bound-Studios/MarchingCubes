@@ -138,7 +138,7 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref McConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = McStaticHelper.WorldToChunk(rawEdit.WorldPosition, config.ChunkSize, 1);
+                var centralCoord = McStaticHelper.VoxelToChunk(rawEdit.WorldPosition, config.ChunkSize);
                 var centralLocalPos = rawEdit.WorldPosition - centralCoord * McConfigBlob.Value.ChunkSize;
 
                 var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
@@ -195,7 +195,7 @@ namespace Spellbound.MarchingCubes {
             }
         }
 
-        public VoxelData QueryVoxel(Vector3 position) {
+        public VoxelData QueryVoxel(Vector3 position, IVoxelVolume voxelVolume) {
             
             
             var chunkManager = GetComponent<IVoxelVolume>();
@@ -203,15 +203,17 @@ namespace Spellbound.MarchingCubes {
             if (chunkManager == null)
                 return new VoxelData();
 
-            var chunk = chunkManager.GetChunkByPosition(position);
+            var chunk = chunkManager.GetChunkByWorldPosition(position);
 
             if (chunk == null) return new VoxelData();
 
             if (!chunk.HasVoxelData())
                 return new VoxelData();
+            
+            var voxelPosition = chunkManager.WorldToVoxelSpace(position);
 
 
-            var voxel = chunk.GetVoxelData(position);
+            var voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
             return voxel;
         }
 
