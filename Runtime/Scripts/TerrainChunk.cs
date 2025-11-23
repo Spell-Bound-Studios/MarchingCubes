@@ -1,5 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System;
 using System.Collections.Generic;
 using Spellbound.Core;
 using Unity.Collections;
@@ -14,7 +15,14 @@ namespace Spellbound.MarchingCubes {
         private OctreeNode _rootNode;
         private DensityRange _densityRange;
         private MarchingCubesManager _mcManager;
-        private IVoxelTerrainChunkManager _chunkManager;
+        private IVoxelVolume _chunkManager;
+
+        public void Update() {
+            if (_rootNode == null) {
+                return;
+            }
+            _rootNode.ValidateMaterial();
+        }
 
         public NativeArray<VoxelData> GetVoxelDataArray() =>
                 _mcManager.GetOrUnpackVoxelArray(_chunkCoord, this, _sparseVoxels);
@@ -37,7 +45,7 @@ namespace Spellbound.MarchingCubes {
 
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
-            _rootNode = new OctreeNode(Vector3Int.zero, _mcManager.McConfigBlob.Value.LevelsOfDetail, this);
+            _rootNode = new OctreeNode(Vector3Int.zero, _mcManager.McConfigBlob.Value.LevelsOfDetail, this, _chunkManager.GetTransform());
             if (Camera.main != null) ValidateOctreeLods(Camera.main.transform.position);
         }
 
@@ -156,7 +164,7 @@ namespace Spellbound.MarchingCubes {
         public void SetChunkFields(Vector3Int coord) {
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             ref var config = ref _mcManager.McConfigBlob.Value;
-            _chunkManager = SingletonManager.GetSingletonInstance<IVoxelTerrainChunkManager>();
+            _chunkManager = GetComponentInParent<IVoxelVolume>();
             _chunkCoord = coord;
 
             _bounds = new Bounds(

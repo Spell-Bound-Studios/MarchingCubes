@@ -8,7 +8,7 @@ using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public class TerrainChunkManager : MonoBehaviour, IVoxelTerrainChunkManager {
+    public class VoxelVolume : MonoBehaviour, IVoxelVolume {
         private Dictionary<Vector3Int, IVoxelTerrainChunk> _chunkDict = new();
         [SerializeField] private GameObject _chunkPrefab;
 
@@ -24,18 +24,31 @@ namespace Spellbound.MarchingCubes {
         }
 
         public IVoxelTerrainChunk GetChunkByCoord(Vector3Int coord) => _chunkDict.GetValueOrDefault(coord);
-
-        private void Awake() => SingletonManager.RegisterSingleton<IVoxelTerrainChunkManager>(this);
-
+        
         private void Start() {
+            if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                mcManager.RegisterVoxelVolume(this, mcManager.McConfigBlob.Value.ChunkDataVolumeSize);
+            }
+            else {
+                Debug.LogError("MarchingCubesManager is null.");
+
+                return;
+            }
             GenerateSimpleData();
             StartCoroutine(Initialize());
             StartCoroutine(ValidateChunkLods());
         }
 
         private void OnDestroy() {
-            if (_dummyData.IsCreated) _dummyData.Dispose();
+            if (_dummyData.IsCreated) 
+                _dummyData.Dispose();
+            
+            if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                mcManager.UnregisterVoxelVolume(this);
+            }
         }
+        
+        public Transform GetTransform()  => transform;
 
         public void GenerateSimpleData() {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
@@ -82,8 +95,8 @@ namespace Spellbound.MarchingCubes {
 
             var chunkObj = Instantiate(
                 _chunkPrefab,
-                chunkCoord * config.ChunkSizeResolution,
-                Quaternion.identity,
+                transform.position + chunkCoord * config.ChunkSizeResolution,
+                transform.rotation,
                 transform
             );
 

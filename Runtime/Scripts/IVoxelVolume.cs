@@ -3,9 +3,11 @@
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public interface IVoxelTerrainChunkManager {
+    public interface IVoxelVolume {
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position);
 
         public IVoxelTerrainChunk GetChunkByCoord(Vector3Int coord);
+
+        public Transform GetTransform();
     }
 }

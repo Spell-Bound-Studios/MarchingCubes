@@ -36,7 +36,7 @@ namespace Spellbound.MarchingCubes {
                 return _denseVoxelArray;
             }
 
-            if (_currentCoord.HasValue && _currentCoord.Value == coord) {
+            if (_currentCoord.HasValue && _currentCoord.Value == coord && chunk == _currentChunk) {
                 // ConsoleLogger.PrintToConsole($"GetOrUnpackVoxelArray - No need to unpack. Getting voxel array for {coord}, sparseVoxels length is {sparseData.Length}.");
                 _isArrayInUse = true;
 

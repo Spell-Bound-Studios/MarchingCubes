@@ -1,4 +1,4 @@
-Shader "Spellbound/Spellbound Terrain"
+Shader "Spellbound/SpellboundTerrain"
 {
     Properties
     {
@@ -319,6 +319,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -376,10 +377,23 @@ Shader "Spellbound/Spellbound Terrain"
             Out = Predicate ? True : False;
         }
         
+        // unity-custom-func-begin
+        void TransformPositionToVolumeSpace_float(float3 worldPos, float4x4 worldToLocal, out float3 volumeLocalPos){
+            volumeLocalPos = mul(worldToLocal, float4(worldPos, 1.0)).xyz;
+        }
+        // unity-custom-func-end
+        
         void Unity_Multiply_float3_float3(float3 A, float3 B, out float3 Out)
         {
             Out = A * B;
         }
+        
+        // unity-custom-func-begin
+        void TransformNormal_float(float3 worldNormal, float4x4 worldToLocal, out float3 volumeLocalNormal){
+            volumeLocalNormal = mul((float3x3)worldToLocal, worldNormal);
+            volumeLocalNormal = normalize(volumeLocalNormal);
+        }
+        // unity-custom-func-end
         
         void Unity_Absolute_float3(float3 In, out float3 Out)
         {
@@ -479,9 +493,12 @@ Shader "Spellbound/Spellbound Terrain"
             Unity_Round_float(_Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float);
             float _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float;
             Unity_Branch_float(_Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean, _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float);
+            float4x4 _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4 = _WorldToLocal;
+            float3 _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3;
+            TransformPositionToVolumeSpace_float(IN.WorldSpacePosition, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3);
             float _Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float = _Tiling;
             float3 _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3;
-            Unity_Multiply_float3_float3(IN.WorldSpacePosition, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
+            Unity_Multiply_float3_float3(_TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
             float2 _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.xz;
             float4 _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.tex, _Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
             float _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_R_4_Float = _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4.r;
@@ -494,8 +511,10 @@ Shader "Spellbound/Spellbound Terrain"
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_G_5_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.g;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_B_6_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.b;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_A_7_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.a;
+            float3 _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3;
+            TransformNormal_float(IN.WorldSpaceNormal, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3);
             float3 _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3;
-            Unity_Absolute_float3(IN.WorldSpaceNormal, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
+            Unity_Absolute_float3(_TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
@@ -924,6 +943,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -981,10 +1001,23 @@ Shader "Spellbound/Spellbound Terrain"
             Out = Predicate ? True : False;
         }
         
+        // unity-custom-func-begin
+        void TransformPositionToVolumeSpace_float(float3 worldPos, float4x4 worldToLocal, out float3 volumeLocalPos){
+            volumeLocalPos = mul(worldToLocal, float4(worldPos, 1.0)).xyz;
+        }
+        // unity-custom-func-end
+        
         void Unity_Multiply_float3_float3(float3 A, float3 B, out float3 Out)
         {
             Out = A * B;
         }
+        
+        // unity-custom-func-begin
+        void TransformNormal_float(float3 worldNormal, float4x4 worldToLocal, out float3 volumeLocalNormal){
+            volumeLocalNormal = mul((float3x3)worldToLocal, worldNormal);
+            volumeLocalNormal = normalize(volumeLocalNormal);
+        }
+        // unity-custom-func-end
         
         void Unity_Absolute_float3(float3 In, out float3 Out)
         {
@@ -1084,9 +1117,12 @@ Shader "Spellbound/Spellbound Terrain"
             Unity_Round_float(_Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float);
             float _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float;
             Unity_Branch_float(_Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean, _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float);
+            float4x4 _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4 = _WorldToLocal;
+            float3 _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3;
+            TransformPositionToVolumeSpace_float(IN.WorldSpacePosition, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3);
             float _Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float = _Tiling;
             float3 _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3;
-            Unity_Multiply_float3_float3(IN.WorldSpacePosition, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
+            Unity_Multiply_float3_float3(_TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
             float2 _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.xz;
             float4 _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.tex, _Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
             float _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_R_4_Float = _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4.r;
@@ -1099,8 +1135,10 @@ Shader "Spellbound/Spellbound Terrain"
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_G_5_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.g;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_B_6_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.b;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_A_7_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.a;
+            float3 _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3;
+            TransformNormal_float(IN.WorldSpaceNormal, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3);
             float3 _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3;
-            Unity_Absolute_float3(IN.WorldSpaceNormal, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
+            Unity_Absolute_float3(_TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
@@ -1409,6 +1447,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -1710,6 +1749,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2012,6 +2052,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2333,6 +2374,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2684,6 +2726,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2741,10 +2784,23 @@ Shader "Spellbound/Spellbound Terrain"
             Out = Predicate ? True : False;
         }
         
+        // unity-custom-func-begin
+        void TransformPositionToVolumeSpace_float(float3 worldPos, float4x4 worldToLocal, out float3 volumeLocalPos){
+            volumeLocalPos = mul(worldToLocal, float4(worldPos, 1.0)).xyz;
+        }
+        // unity-custom-func-end
+        
         void Unity_Multiply_float3_float3(float3 A, float3 B, out float3 Out)
         {
             Out = A * B;
         }
+        
+        // unity-custom-func-begin
+        void TransformNormal_float(float3 worldNormal, float4x4 worldToLocal, out float3 volumeLocalNormal){
+            volumeLocalNormal = mul((float3x3)worldToLocal, worldNormal);
+            volumeLocalNormal = normalize(volumeLocalNormal);
+        }
+        // unity-custom-func-end
         
         void Unity_Absolute_float3(float3 In, out float3 Out)
         {
@@ -2840,9 +2896,12 @@ Shader "Spellbound/Spellbound Terrain"
             Unity_Round_float(_Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float);
             float _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float;
             Unity_Branch_float(_Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean, _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float);
+            float4x4 _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4 = _WorldToLocal;
+            float3 _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3;
+            TransformPositionToVolumeSpace_float(IN.WorldSpacePosition, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3);
             float _Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float = _Tiling;
             float3 _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3;
-            Unity_Multiply_float3_float3(IN.WorldSpacePosition, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
+            Unity_Multiply_float3_float3(_TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
             float2 _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.xz;
             float4 _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.tex, _Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
             float _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_R_4_Float = _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4.r;
@@ -2855,8 +2914,10 @@ Shader "Spellbound/Spellbound Terrain"
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_G_5_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.g;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_B_6_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.b;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_A_7_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.a;
+            float3 _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3;
+            TransformNormal_float(IN.WorldSpaceNormal, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3);
             float3 _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3;
-            Unity_Absolute_float3(IN.WorldSpaceNormal, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
+            Unity_Absolute_float3(_TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
@@ -3128,6 +3189,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3462,6 +3524,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3519,10 +3582,23 @@ Shader "Spellbound/Spellbound Terrain"
             Out = Predicate ? True : False;
         }
         
+        // unity-custom-func-begin
+        void TransformPositionToVolumeSpace_float(float3 worldPos, float4x4 worldToLocal, out float3 volumeLocalPos){
+            volumeLocalPos = mul(worldToLocal, float4(worldPos, 1.0)).xyz;
+        }
+        // unity-custom-func-end
+        
         void Unity_Multiply_float3_float3(float3 A, float3 B, out float3 Out)
         {
             Out = A * B;
         }
+        
+        // unity-custom-func-begin
+        void TransformNormal_float(float3 worldNormal, float4x4 worldToLocal, out float3 volumeLocalNormal){
+            volumeLocalNormal = mul((float3x3)worldToLocal, worldNormal);
+            volumeLocalNormal = normalize(volumeLocalNormal);
+        }
+        // unity-custom-func-end
         
         void Unity_Absolute_float3(float3 In, out float3 Out)
         {
@@ -3617,9 +3693,12 @@ Shader "Spellbound/Spellbound Terrain"
             Unity_Round_float(_Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float);
             float _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float;
             Unity_Branch_float(_Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean, _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float);
+            float4x4 _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4 = _WorldToLocal;
+            float3 _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3;
+            TransformPositionToVolumeSpace_float(IN.WorldSpacePosition, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3);
             float _Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float = _Tiling;
             float3 _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3;
-            Unity_Multiply_float3_float3(IN.WorldSpacePosition, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
+            Unity_Multiply_float3_float3(_TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
             float2 _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.xz;
             float4 _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.tex, _Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
             float _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_R_4_Float = _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4.r;
@@ -3632,8 +3711,10 @@ Shader "Spellbound/Spellbound Terrain"
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_G_5_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.g;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_B_6_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.b;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_A_7_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.a;
+            float3 _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3;
+            TransformNormal_float(IN.WorldSpaceNormal, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3);
             float3 _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3;
-            Unity_Absolute_float3(IN.WorldSpaceNormal, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
+            Unity_Absolute_float3(_TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
@@ -3932,6 +4013,7 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
+        float4x4 _WorldToLocal;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3989,10 +4071,23 @@ Shader "Spellbound/Spellbound Terrain"
             Out = Predicate ? True : False;
         }
         
+        // unity-custom-func-begin
+        void TransformPositionToVolumeSpace_float(float3 worldPos, float4x4 worldToLocal, out float3 volumeLocalPos){
+            volumeLocalPos = mul(worldToLocal, float4(worldPos, 1.0)).xyz;
+        }
+        // unity-custom-func-end
+        
         void Unity_Multiply_float3_float3(float3 A, float3 B, out float3 Out)
         {
             Out = A * B;
         }
+        
+        // unity-custom-func-begin
+        void TransformNormal_float(float3 worldNormal, float4x4 worldToLocal, out float3 volumeLocalNormal){
+            volumeLocalNormal = mul((float3x3)worldToLocal, worldNormal);
+            volumeLocalNormal = normalize(volumeLocalNormal);
+        }
+        // unity-custom-func-end
         
         void Unity_Absolute_float3(float3 In, out float3 Out)
         {
@@ -4087,9 +4182,12 @@ Shader "Spellbound/Spellbound Terrain"
             Unity_Round_float(_Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float);
             float _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float;
             Unity_Branch_float(_Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean, _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float);
+            float4x4 _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4 = _WorldToLocal;
+            float3 _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3;
+            TransformPositionToVolumeSpace_float(IN.WorldSpacePosition, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3);
             float _Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float = _Tiling;
             float3 _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3;
-            Unity_Multiply_float3_float3(IN.WorldSpacePosition, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
+            Unity_Multiply_float3_float3(_TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
             float2 _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.xz;
             float4 _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.tex, _Property_5dd74e5921fb4cc4a047052d4a37861e_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
             float _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_R_4_Float = _SampleTexture2DArray_fa8f76eed3fd4a46bb9272808806f4bb_RGBA_0_Vector4.r;
@@ -4102,8 +4200,10 @@ Shader "Spellbound/Spellbound Terrain"
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_G_5_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.g;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_B_6_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.b;
             float _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_A_7_Float = _SampleTexture2DArray_b8bf9de695ad4e4eb696cc4b285c26f6_RGBA_0_Vector4.a;
+            float3 _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3;
+            TransformNormal_float(IN.WorldSpaceNormal, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3);
             float3 _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3;
-            Unity_Absolute_float3(IN.WorldSpaceNormal, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
+            Unity_Absolute_float3(_TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
