@@ -99,10 +99,19 @@ namespace Spellbound.MarchingCubes {
         }
 
         private IEnumerator Initialize() {
+            // Calculate offset to center the volume
+            var offset = new Vector3Int(
+                cubeSizeInChunks.x / 2,
+                cubeSizeInChunks.y / 2,
+                cubeSizeInChunks.z / 2
+            );
+
             for (var x = 0; x < cubeSizeInChunks.x; x++) {
                 for (var y = 0; y < cubeSizeInChunks.y; y++) {
                     for (var z = 0; z < cubeSizeInChunks.z; z++) {
-                        var chunk = RegisterChunk(new Vector3Int(x, y, z));
+                        // Subtract offset to center around origin
+                        var chunkCoord = new Vector3Int(x, y, z) - offset;
+                        var chunk = RegisterChunk(chunkCoord);
                         chunk.InitializeVoxelData(_dummyData);
 
                         yield return null;

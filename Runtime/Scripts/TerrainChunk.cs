@@ -159,8 +159,10 @@ namespace Spellbound.MarchingCubes {
         private void OnDrawGizmos() {
             if (_mcManager == null) return;
             ref var config = ref _mcManager.McConfigBlob.Value;
-            var worldCenter = transform.TransformPoint((Vector3)_bounds.center * config.Resolution);
+            
             var worldSize = (Vector3)_bounds.size * config.Resolution;
+            var worldCenter = transform.position + worldSize * 0.5f;
+    
             Gizmos.DrawWireCube(worldCenter, worldSize);
         }
 
