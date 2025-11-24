@@ -28,8 +28,6 @@ namespace Spellbound.MarchingCubes {
         public void Execute() {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
-            
-            var chunkCenterfloat3 = new float3(config.ChunkCenter.x, config.ChunkCenter.y, config.ChunkCenter.z);
                     
             // Padding is the offset between the index in the voxel array and the local position of the voxel.
             const int padding = 1;
@@ -360,7 +358,6 @@ namespace Spellbound.MarchingCubes {
                                 var colorInterp = new float2((float)matA / byte.MaxValue, 0);
 
                                 var color = new Color32((byte)matA, (byte)matB, 0, 0);
-                                //var centeredVertex = vertex * config.Resolution - chunkCenterfloat3 * config.Resolution;
                                 var centeredVertex = vertex * config.Resolution;
                                 Vertices.Add(new MeshingVertexData(centeredVertex, normal, color,
                                     colorInterp));

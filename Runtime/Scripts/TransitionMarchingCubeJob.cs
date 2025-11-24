@@ -52,7 +52,6 @@ namespace Spellbound.MarchingCubes {
         private void GenerateTransitionMesh(McStaticHelper.TransitionFaceMask direction) {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
-            var chunkCenterfloat3 = new float3(config.ChunkCenter.x, config.ChunkCenter.y, config.ChunkCenter.z);
             const int padding = 1;
             var lodScale = 1 << Lod;
 
@@ -224,8 +223,7 @@ namespace Spellbound.MarchingCubes {
                                 selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
                                         vertexIndex;
                             }
-
-                            //var centeredVertex = vertex * config.Resolution - chunkCenterfloat3 * config.Resolution;
+                            
                             var centeredVertex = vertex * config.Resolution;
                             TransitionMeshingVertexData.Add(new MeshingVertexData(centeredVertex, normal,
                                 color, colorInterp));

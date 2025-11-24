@@ -39,16 +39,15 @@ namespace Spellbound.MarchingCubes {
             _localPosition = localPosition;
             _lod = lod;
             _chunk = chunk;
+
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
-            
-            // Bounds in chunk-local voxel space
-            var octreeSizeVoxels = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod;
+            ref var config = ref _mcManager.McConfigBlob.Value;
+            var octreeSizeVoxels = 3 + (config.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
         }
 
         private Vector3 GetWorldCenterPosition() {
             ref var config = ref _mcManager.McConfigBlob.Value;
-            // Convert voxel bounds center to chunk-local Unity space, then to world space
             var localCenter = ((Vector3)_boundsVoxel.min + (Vector3)_boundsVoxel.max) / 2f * config.Resolution;
             return _chunk.GetChunkTransform().TransformPoint(localCenter);
         }
@@ -136,14 +135,12 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            // Calculate world position of this octree node for LOD distance check
             var octreeWorldPos = GetWorldCenterPosition();
             var targetLod = GetLodRange(octreeWorldPos, playerPosition);
 
             if (_chunk.GetDensityRange().IsSkippable())
                 return;
-
-            // should always be equals, because if it was smaller, then the parent would have been the equals
+            
             if (_lod <= targetLod) {
                 if (_leafGo == null)
                     MakeLeaf(voxelArray);
@@ -161,9 +158,9 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeEdits(BoundsInt boundsVoxel, NativeArray<VoxelData> voxelArray) {
-            // Check if edit bounds (chunk-local voxel space) intersect this node's bounds
-            if (!BoundsIntersect(_boundsVoxel, boundsVoxel)) 
+            if (!BoundsIntersect(_boundsVoxel, boundsVoxel)) {
                 return;
+            }
 
             if (IsLeaf) {
                 UpdateLeaf(voxelArray);
@@ -434,17 +431,15 @@ namespace Spellbound.MarchingCubes {
         }
 
         private Vector3Int[] GetFaceCentersVoxel() {
-            // Face centers should be at the middle of each face, ON the boundary
             var center = (_boundsVoxel.min + _boundsVoxel.max) / 2;
-            var halfSize = _boundsVoxel.size / 2;
     
             return new[] {
                 new Vector3Int(_boundsVoxel.min.x - 1, center.y, center.z), // XMin face (outside left)
                 new Vector3Int(center.x, _boundsVoxel.min.y - 1, center.z), // YMin face (outside bottom)
                 new Vector3Int(center.x, center.y, _boundsVoxel.min.z - 1), // ZMin face (outside back)
-                new Vector3Int(_boundsVoxel.max.x, center.y, center.z),     // XMax face (outside right)
-                new Vector3Int(center.x, _boundsVoxel.max.y, center.z),     // YMax face (outside top)
-                new Vector3Int(center.x, center.y, _boundsVoxel.max.z),     // ZMax face (outside front)
+                new Vector3Int(_boundsVoxel.max.x + 1, center.y, center.z),     // XMax face (at boundary right)
+                new Vector3Int(center.x, _boundsVoxel.max.y + 1, center.z),     // YMax face (at boundary top)
+                new Vector3Int(center.x, center.y, _boundsVoxel.max.z + 1),     // ZMax face (at boundary front)
             };
         }
 

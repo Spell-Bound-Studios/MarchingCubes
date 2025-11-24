@@ -132,6 +132,7 @@ namespace Spellbound.MarchingCubes {
         /// </summary>
         public void DistributeVoxelEdits(
             IVoxelVolume voxelVolume, List<RawVoxelEdit> rawVoxelEdits, HashSet<MaterialType> removableMatTypes = null) {
+            
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
             
 
@@ -189,32 +190,29 @@ namespace Spellbound.MarchingCubes {
             foreach (var kvp in editsByChunkCoord) {
                 var chunk = voxelVolume.GetChunkByCoord(kvp.Key);
 
-                if (chunk == null) continue;
+                if (chunk == null) 
+                    continue;
 
                 chunk.AddToVoxelEdits(kvp.Value);
             }
         }
 
-        public VoxelData QueryVoxel(Vector3 position, IVoxelVolume voxelVolume) {
+        public VoxelData QueryVoxel(Vector3 position) {
+            foreach (var voxelVolume in _voxelVolumes) {
+                var chunk = voxelVolume.GetChunkByWorldPosition(position);
+
+                if (chunk == null)
+                    continue;
+                
+                if (!chunk.HasVoxelData())
+                    continue;
+                
+                var voxelPosition = voxelVolume.WorldToVoxelSpace(position);
+                var voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
+                return voxel;
+            }
             
-            
-            var chunkManager = GetComponent<IVoxelVolume>();
-
-            if (chunkManager == null)
-                return new VoxelData();
-
-            var chunk = chunkManager.GetChunkByWorldPosition(position);
-
-            if (chunk == null) return new VoxelData();
-
-            if (!chunk.HasVoxelData())
-                return new VoxelData();
-            
-            var voxelPosition = chunkManager.WorldToVoxelSpace(position);
-
-
-            var voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
-            return voxel;
+            return new VoxelData();
         }
 
         private void InitializeSharedIndicesLookup() {

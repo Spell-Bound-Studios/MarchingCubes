@@ -24,11 +24,8 @@ namespace Spellbound.MarchingCubes {
         
         public IVoxelTerrainChunk GetChunkByWorldPosition(Vector3 worldPos) {
             ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
-    
-            // Convert world to volume-local space
             var localPos = transform.InverseTransformPoint(worldPos);
-    
-            // Convert to voxel coordinates
+            
             var voxelPos = new Vector3Int(
                 Mathf.FloorToInt(localPos.x / config.Resolution),
                 Mathf.FloorToInt(localPos.y / config.Resolution),
@@ -99,7 +96,6 @@ namespace Spellbound.MarchingCubes {
         }
 
         private IEnumerator Initialize() {
-            // Calculate offset to center the volume
             var offset = new Vector3Int(
                 cubeSizeInChunks.x / 2,
                 cubeSizeInChunks.y / 2,
@@ -109,7 +105,6 @@ namespace Spellbound.MarchingCubes {
             for (var x = 0; x < cubeSizeInChunks.x; x++) {
                 for (var y = 0; y < cubeSizeInChunks.y; y++) {
                     for (var z = 0; z < cubeSizeInChunks.z; z++) {
-                        // Subtract offset to center around origin
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
                         var chunk = RegisterChunk(chunkCoord);
                         chunk.InitializeVoxelData(_dummyData);
@@ -123,8 +118,6 @@ namespace Spellbound.MarchingCubes {
         private IVoxelTerrainChunk RegisterChunk(Vector3Int chunkCoord) {
             var newChunk = CreateNChunk(chunkCoord);
             _chunkDict[chunkCoord] = newChunk;
-            //OnChunkCountChanged?.Invoke(ClientChunkDict.Count);
-
             return newChunk;
         }
 
@@ -161,8 +154,7 @@ namespace Spellbound.MarchingCubes {
 
                     if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
                         continue;
-
-                    // playerPosition is in world space for LOD distance calculations
+                    
                     chunk.ValidateOctreeLods(Camera.main.transform.position);
 
                     yield return null;
