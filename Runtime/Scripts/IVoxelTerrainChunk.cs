@@ -22,17 +22,17 @@ namespace Spellbound.MarchingCubes {
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange);
 
-        public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3 pos, int index);
+        public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3Int pos, int index);
 
         public void AddToVoxelEdits(List<VoxelEdit> newVoxelEdits);
 
         public VoxelData GetVoxelData(int index);
 
-        public VoxelData GetVoxelData(Vector3 position);
+        public VoxelData GetVoxelDataFromVoxelPosition(Vector3Int position);
 
         public bool HasVoxelData();
 
-        public void ValidateOctreeEdits(Bounds bounds);
+        public void ValidateOctreeEdits(BoundsInt bounds);
 
         public void SetChunkFields(Vector3Int coord);
 

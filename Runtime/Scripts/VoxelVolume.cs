@@ -8,7 +8,7 @@ using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public class TerrainChunkManager : MonoBehaviour, IVoxelTerrainChunkManager {
+    public class VoxelVolume : MonoBehaviour, IVoxelVolume {
         private Dictionary<Vector3Int, IVoxelTerrainChunk> _chunkDict = new();
         [SerializeField] private GameObject _chunkPrefab;
 
@@ -16,26 +16,63 @@ namespace Spellbound.MarchingCubes {
 
         private NativeList<SparseVoxelData> _dummyData;
 
-        public IVoxelTerrainChunk GetChunkByPosition(Vector3 position) {
-            ref var config =  ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
-            var coord = McStaticHelper.WorldToChunk(position, config.ChunkSizeResolution, config.Resolution);
-
+        public IVoxelTerrainChunk GetChunkByVoxelPosition(Vector3Int voxelPos) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+            var coord = McStaticHelper.VoxelToChunk(voxelPos, config.ChunkSize);
             return GetChunkByCoord(coord);
+        }
+        
+        public IVoxelTerrainChunk GetChunkByWorldPosition(Vector3 worldPos) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+            var localPos = transform.InverseTransformPoint(worldPos);
+            
+            var voxelPos = new Vector3Int(
+                Mathf.FloorToInt(localPos.x / config.Resolution),
+                Mathf.FloorToInt(localPos.y / config.Resolution),
+                Mathf.FloorToInt(localPos.z / config.Resolution)
+            );
+    
+            return GetChunkByVoxelPosition(voxelPos);
         }
 
         public IVoxelTerrainChunk GetChunkByCoord(Vector3Int coord) => _chunkDict.GetValueOrDefault(coord);
 
-        private void Awake() => SingletonManager.RegisterSingleton<IVoxelTerrainChunkManager>(this);
-
+        public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
+            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+            
+            var localPos = transform.InverseTransformPoint(worldPosition);
+            
+            return new Vector3Int(
+                Mathf.FloorToInt(localPos.x / config.Resolution),
+                Mathf.FloorToInt(localPos.y / config.Resolution),
+                Mathf.FloorToInt(localPos.z / config.Resolution)
+            );
+        }
+        
         private void Start() {
+            if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                mcManager.RegisterVoxelVolume(this, mcManager.McConfigBlob.Value.ChunkDataVolumeSize);
+            }
+            else {
+                Debug.LogError("MarchingCubesManager is null.");
+
+                return;
+            }
             GenerateSimpleData();
             StartCoroutine(Initialize());
             StartCoroutine(ValidateChunkLods());
         }
 
         private void OnDestroy() {
-            if (_dummyData.IsCreated) _dummyData.Dispose();
+            if (_dummyData.IsCreated) 
+                _dummyData.Dispose();
+            
+            if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                mcManager.UnregisterVoxelVolume(this);
+            }
         }
+        
+        public Transform GetTransform()  => transform;
 
         public void GenerateSimpleData() {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
@@ -46,21 +83,30 @@ namespace Spellbound.MarchingCubes {
 
             ref var config = ref mcManager.McConfigBlob.Value;
 
+            var halfChunk = config.ChunkSize / 2;
+
             _dummyData = new NativeList<SparseVoxelData>(Allocator.Persistent);
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand), 0));
 
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Dirt),
-                config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 12)));
+                config.ChunkDataAreaSize * (halfChunk - 8)));
 
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MinValue, MaterialType.Dirt),
-                config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 4)));
+                config.ChunkDataAreaSize * halfChunk));
         }
 
         private IEnumerator Initialize() {
+            var offset = new Vector3Int(
+                cubeSizeInChunks.x / 2,
+                cubeSizeInChunks.y / 2,
+                cubeSizeInChunks.z / 2
+            );
+
             for (var x = 0; x < cubeSizeInChunks.x; x++) {
                 for (var y = 0; y < cubeSizeInChunks.y; y++) {
                     for (var z = 0; z < cubeSizeInChunks.z; z++) {
-                        var chunk = RegisterChunk(new Vector3Int(x, y, z));
+                        var chunkCoord = new Vector3Int(x, y, z) - offset;
+                        var chunk = RegisterChunk(chunkCoord);
                         chunk.InitializeVoxelData(_dummyData);
 
                         yield return null;
@@ -72,18 +118,19 @@ namespace Spellbound.MarchingCubes {
         private IVoxelTerrainChunk RegisterChunk(Vector3Int chunkCoord) {
             var newChunk = CreateNChunk(chunkCoord);
             _chunkDict[chunkCoord] = newChunk;
-            //OnChunkCountChanged?.Invoke(ClientChunkDict.Count);
-
             return newChunk;
         }
 
         private IVoxelTerrainChunk CreateNChunk(Vector3Int chunkCoord) {
             ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
 
+            var localChunkPos = (Vector3)(chunkCoord * config.ChunkSizeResolution);
+            var worldChunkPos = transform.TransformPoint(localChunkPos);
+
             var chunkObj = Instantiate(
                 _chunkPrefab,
-                chunkCoord * config.ChunkSizeResolution,
-                Quaternion.identity,
+                worldChunkPos,
+                transform.rotation,
                 transform
             );
 
@@ -107,7 +154,7 @@ namespace Spellbound.MarchingCubes {
 
                     if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
                         continue;
-
+                    
                     chunk.ValidateOctreeLods(Camera.main.transform.position);
 
                     yield return null;

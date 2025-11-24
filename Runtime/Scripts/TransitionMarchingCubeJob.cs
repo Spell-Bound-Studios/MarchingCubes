@@ -223,8 +223,9 @@ namespace Spellbound.MarchingCubes {
                                 selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
                                         vertexIndex;
                             }
-
-                            TransitionMeshingVertexData.Add(new MeshingVertexData(vertex * config.Resolution, normal,
+                            
+                            var centeredVertex = vertex * config.Resolution;
+                            TransitionMeshingVertexData.Add(new MeshingVertexData(centeredVertex, normal,
                                 color, colorInterp));
                         }
 
