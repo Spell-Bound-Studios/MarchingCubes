@@ -28,13 +28,13 @@ namespace Spellbound.MarchingCubes {
         private Vector3Int _localPosition;  // Chunk-local voxel position
         private readonly int _lod;
         private BoundsInt _boundsVoxel;  // Chunk-local voxel space bounds
-        private readonly IVoxelTerrainChunk _chunk;
+        private readonly VoxChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
         private readonly Transform _volumeOriginTransform;
 
         private bool IsLeaf => _children == null;
 
-        public OctreeNode(Vector3Int localPosition, int lod, IVoxelTerrainChunk chunk, Transform volumeOriginTransform) {
+        public OctreeNode(Vector3Int localPosition, int lod, VoxChunk chunk, Transform volumeOriginTransform) {
             _volumeOriginTransform = volumeOriginTransform;
             _localPosition = localPosition;
             _lod = lod;
@@ -49,7 +49,7 @@ namespace Spellbound.MarchingCubes {
         private Vector3 GetWorldCenterPosition() {
             ref var config = ref _mcManager.McConfigBlob.Value;
             var localCenter = ((Vector3)_boundsVoxel.min + (Vector3)_boundsVoxel.max) / 2f * config.Resolution;
-            return _chunk.GetChunkTransform().TransformPoint(localCenter);
+            return _chunk.Transform.TransformPoint(localCenter);
         }
 
         public void Dispose() {
@@ -138,7 +138,7 @@ namespace Spellbound.MarchingCubes {
             var octreeWorldPos = GetWorldCenterPosition();
             var targetLod = GetLodRange(octreeWorldPos, playerPosition);
 
-            if (_chunk.GetDensityRange().IsSkippable())
+            if (_chunk.DensityRange.IsSkippable())
                 return;
             
             if (_lod <= targetLod) {
@@ -228,7 +228,7 @@ namespace Spellbound.MarchingCubes {
             var jobHandle = marchingCubeJob.Schedule();
 
             _mcManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles,
-                _chunk.GetChunkCoord());
+                _chunk.ChunkCoord);
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
@@ -251,7 +251,7 @@ namespace Spellbound.MarchingCubes {
                     transitionMarchingCubeJob.TransitionMeshingVertexData,
                     transitionMarchingCubeJob.TransitionTriangles,
                     transitionMarchingCubeJob.TransitionRanges,
-                    _chunk.GetChunkCoord());
+                    _chunk.ChunkCoord);
             }
         }
 
@@ -269,7 +269,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BuildLeaf() {
-            _leafGo = _mcManager.GetPooledObject(_chunk.GetChunkTransform());
+            _leafGo = _mcManager.GetPooledObject(_chunk.Transform);
             _leafGo.transform.localPosition = Vector3.zero;
             _leafGo.transform.localRotation = Quaternion.identity;
 

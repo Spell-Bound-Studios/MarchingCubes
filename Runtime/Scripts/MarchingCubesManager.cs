@@ -155,7 +155,7 @@ namespace Spellbound.MarchingCubes {
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
 
-                var existingVoxel = chunk.GetVoxelData(index);
+                var existingVoxel = chunk.VoxelChunk.GetVoxelData(index);
 
                 if (rawEdit.DensityChange < 0 && removableMatTypes != null && !removableMatTypes.Contains(existingVoxel.MaterialType)) continue;
 
@@ -193,7 +193,7 @@ namespace Spellbound.MarchingCubes {
                 if (chunk == null) 
                     continue;
 
-                chunk.AddToVoxelEdits(kvp.Value);
+                chunk.PassVoxelEdits(kvp.Value);
             }
         }
 
@@ -204,11 +204,11 @@ namespace Spellbound.MarchingCubes {
                 if (chunk == null)
                     continue;
                 
-                if (!chunk.HasVoxelData())
+                if (!chunk.VoxelChunk.HasVoxelData())
                     continue;
                 
                 var voxelPosition = voxelVolume.WorldToVoxelSpace(position);
-                var voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
+                var voxel = chunk.VoxelChunk.GetVoxelDataFromVoxelPosition(voxelPosition);
                 return voxel;
             }
             

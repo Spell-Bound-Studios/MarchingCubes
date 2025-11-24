@@ -4,11 +4,11 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public interface IVoxelVolume {
-        public IVoxelTerrainChunk GetChunkByVoxelPosition(Vector3Int position);
+        public IChunk GetChunkByVoxelPosition(Vector3Int position);
         
-        public IVoxelTerrainChunk GetChunkByWorldPosition(Vector3 position);
+        public IChunk GetChunkByWorldPosition(Vector3 position);
 
-        public IVoxelTerrainChunk GetChunkByCoord(Vector3Int coord);
+        public IChunk GetChunkByCoord(Vector3Int coord);
         
         public Vector3Int WorldToVoxelSpace(Vector3 worldPosition);
 
