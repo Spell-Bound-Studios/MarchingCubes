@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
         public void Execute() {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
-                    
+
             // Padding is the offset between the index in the voxel array and the local position of the voxel.
             const int padding = 1;
             var lodScale = 1 << Lod;
@@ -359,6 +359,7 @@ namespace Spellbound.MarchingCubes {
 
                                 var color = new Color32((byte)matA, (byte)matB, 0, 0);
                                 var centeredVertex = vertex * config.Resolution;
+
                                 Vertices.Add(new MeshingVertexData(centeredVertex, normal, color,
                                     colorInterp));
                             }

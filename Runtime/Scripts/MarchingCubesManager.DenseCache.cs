@@ -11,7 +11,7 @@ namespace Spellbound.MarchingCubes {
         private NativeArray<DensityRange> _densityRange;
         private Vector3Int? _currentCoord;
         private bool _isArrayInUse;
-        private IVoxelTerrainChunk _currentChunk;
+        private VoxChunk _currentChunk;
 
         private void AllocateArrays(int arraySize) {
             _denseVoxelArray = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
@@ -20,7 +20,7 @@ namespace Spellbound.MarchingCubes {
 
         public NativeArray<VoxelData> GetOrUnpackVoxelArray(
             Vector3Int coord,
-            IVoxelTerrainChunk chunk,
+            VoxChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
             if (_isArrayInUse) {
                 if (_currentCoord.HasValue && _currentCoord.Value != coord) {

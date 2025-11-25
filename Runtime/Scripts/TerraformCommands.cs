@@ -7,122 +7,121 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public static class TerraformCommands {
-        public static Func<IVoxelVolume, List<RawVoxelEdit>> RemoveSphere(
-            Vector3 worldPosition, 
-            float radius, 
-            int delta) {
+        public static Func<IVolume, List<RawVoxelEdit>> RemoveSphere(
+            Vector3 worldPosition,
+            float radius,
+            int delta) =>
+                (iVoxelVolume) => {
+                    ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob
+                            .Value;
 
-            return (iVoxelVolume) => {
-                ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
-                
-                // Convert world position to volume-local space
-                var localPos = iVoxelVolume.GetTransform().InverseTransformPoint(worldPosition);
-                
-                // Convert to voxel coordinates
-                var voxelCenter = new Vector3(
-                    localPos.x / config.Resolution,
-                    localPos.y / config.Resolution,
-                    localPos.z / config.Resolution
-                );
-                
-                var rawVoxelEdits = new List<RawVoxelEdit>();
-                var radiusVoxels = radius / config.Resolution;
-                
-                var r = Mathf.CeilToInt(radiusVoxels);
-                var radiusSq = radiusVoxels * radiusVoxels;
-                
-                for (var x = -r; x <= r; x++) {
-                    for (var y = -r; y <= r; y++) {
-                        for (var z = -r; z <= r; z++) {
-                            // Voxel position in volume-relative voxel space
-                            var voxelPos = new Vector3Int(
-                                Mathf.RoundToInt(voxelCenter.x) + x,
-                                Mathf.RoundToInt(voxelCenter.y) + y,
-                                Mathf.RoundToInt(voxelCenter.z) + z
-                            );
+                    // Convert world position to volume-local space
+                    var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
 
-                            // Distance from exact center (not rounded)
-                            var offset = new Vector3(
-                                voxelPos.x - voxelCenter.x,
-                                voxelPos.y - voxelCenter.y,
-                                voxelPos.z - voxelCenter.z
-                            );
+                    // Convert to voxel coordinates
+                    var voxelCenter = new Vector3(
+                        localPos.x / config.Resolution,
+                        localPos.y / config.Resolution,
+                        localPos.z / config.Resolution
+                    );
 
-                            var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+                    var rawVoxelEdits = new List<RawVoxelEdit>();
+                    var radiusVoxels = radius / config.Resolution;
 
-                            if (distSq > radiusSq)
-                                continue;
+                    var r = Mathf.CeilToInt(radiusVoxels);
+                    var radiusSq = radiusVoxels * radiusVoxels;
 
-                            var dist = Mathf.Sqrt(distSq);
-                            var falloff = 1f - dist / radiusVoxels;
-                            var adjustedDelta = Mathf.RoundToInt(delta * falloff);
+                    for (var x = -r; x <= r; x++) {
+                        for (var y = -r; y <= r; y++) {
+                            for (var z = -r; z <= r; z++) {
+                                // Voxel position in volume-relative voxel space
+                                var voxelPos = new Vector3Int(
+                                    Mathf.RoundToInt(voxelCenter.x) + x,
+                                    Mathf.RoundToInt(voxelCenter.y) + y,
+                                    Mathf.RoundToInt(voxelCenter.z) + z
+                                );
 
-                            if (adjustedDelta != 0)
-                                rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, -adjustedDelta, 0));
+                                // Distance from exact center (not rounded)
+                                var offset = new Vector3(
+                                    voxelPos.x - voxelCenter.x,
+                                    voxelPos.y - voxelCenter.y,
+                                    voxelPos.z - voxelCenter.z
+                                );
+
+                                var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+
+                                if (distSq > radiusSq)
+                                    continue;
+
+                                var dist = Mathf.Sqrt(distSq);
+                                var falloff = 1f - dist / radiusVoxels;
+                                var adjustedDelta = Mathf.RoundToInt(delta * falloff);
+
+                                if (adjustedDelta != 0)
+                                    rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, -adjustedDelta, 0));
+                            }
                         }
                     }
-                }
-                return rawVoxelEdits;
-            };
-        }
 
-        public static Func<IVoxelVolume, List<RawVoxelEdit>> AddSphere(
-            Vector3 worldPosition, 
-            MaterialType addedMaterial, 
-            float radius, 
-            int delta) {
+                    return rawVoxelEdits;
+                };
 
-            return (iVoxelVolume) => {
-                ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
-                
-                // Convert world position to volume-local space
-                var localPos = iVoxelVolume.GetTransform().InverseTransformPoint(worldPosition);
-                
-                // Convert to voxel coordinates
-                var voxelCenter = new Vector3(
-                    localPos.x / config.Resolution,
-                    localPos.y / config.Resolution,
-                    localPos.z / config.Resolution
-                );
-                
-                var rawVoxelEdits = new List<RawVoxelEdit>();
-                var radiusVoxels = radius / config.Resolution;
-        
-                var r = Mathf.CeilToInt(radiusVoxels);
-                var radiusSq = radiusVoxels * radiusVoxels;
-        
-                for (var x = -r; x <= r; x++) {
-                    for (var y = -r; y <= r; y++) {
-                        for (var z = -r; z <= r; z++) {
-                            var voxelPos = new Vector3Int(
-                                Mathf.RoundToInt(voxelCenter.x) + x,
-                                Mathf.RoundToInt(voxelCenter.y) + y,
-                                Mathf.RoundToInt(voxelCenter.z) + z
-                            );
+        public static Func<IVolume, List<RawVoxelEdit>> AddSphere(
+            Vector3 worldPosition,
+            MaterialType addedMaterial,
+            float radius,
+            int delta) =>
+                (iVoxelVolume) => {
+                    ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob
+                            .Value;
 
-                            var offset = new Vector3(
-                                voxelPos.x - voxelCenter.x,
-                                voxelPos.y - voxelCenter.y,
-                                voxelPos.z - voxelCenter.z
-                            );
+                    // Convert world position to volume-local space
+                    var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
 
-                            var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+                    // Convert to voxel coordinates
+                    var voxelCenter = new Vector3(
+                        localPos.x / config.Resolution,
+                        localPos.y / config.Resolution,
+                        localPos.z / config.Resolution
+                    );
 
-                            if (distSq > radiusSq)
-                                continue;
+                    var rawVoxelEdits = new List<RawVoxelEdit>();
+                    var radiusVoxels = radius / config.Resolution;
 
-                            var dist = Mathf.Sqrt(distSq);
-                            var falloff = 1f - dist / radiusVoxels;
-                            var adjustedDelta = Mathf.RoundToInt(delta * falloff);
+                    var r = Mathf.CeilToInt(radiusVoxels);
+                    var radiusSq = radiusVoxels * radiusVoxels;
 
-                            if (adjustedDelta != 0)
-                                rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, adjustedDelta, addedMaterial));
+                    for (var x = -r; x <= r; x++) {
+                        for (var y = -r; y <= r; y++) {
+                            for (var z = -r; z <= r; z++) {
+                                var voxelPos = new Vector3Int(
+                                    Mathf.RoundToInt(voxelCenter.x) + x,
+                                    Mathf.RoundToInt(voxelCenter.y) + y,
+                                    Mathf.RoundToInt(voxelCenter.z) + z
+                                );
+
+                                var offset = new Vector3(
+                                    voxelPos.x - voxelCenter.x,
+                                    voxelPos.y - voxelCenter.y,
+                                    voxelPos.z - voxelCenter.z
+                                );
+
+                                var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+
+                                if (distSq > radiusSq)
+                                    continue;
+
+                                var dist = Mathf.Sqrt(distSq);
+                                var falloff = 1f - dist / radiusVoxels;
+                                var adjustedDelta = Mathf.RoundToInt(delta * falloff);
+
+                                if (adjustedDelta != 0)
+                                    rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, adjustedDelta, addedMaterial));
+                            }
                         }
                     }
-                }
-        
-                return rawVoxelEdits;
-            };
-        }
+
+                    return rawVoxelEdits;
+                };
     }
 }
