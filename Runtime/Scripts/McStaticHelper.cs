@@ -71,13 +71,6 @@ namespace Spellbound.MarchingCubes {
             return lodRanges.Length - 1;
         }
 
-        public static Vector3Int VoxelToChunk(Vector3 pos, int chunkSize) =>
-                new(
-                    Mathf.FloorToInt((pos.x - 1) / chunkSize),
-                    Mathf.FloorToInt((pos.y - 1) / chunkSize),
-                    Mathf.FloorToInt((pos.z - 1) / chunkSize)
-                );
-
         /*
         private static readonly int2[] CornerPositions = {
             new(1, 1),

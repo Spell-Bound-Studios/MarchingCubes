@@ -10,7 +10,7 @@ namespace Spellbound.MarchingCubes {
     public static class SbTerrain {
         public static bool IsInitialized() =>
                 SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _)
-                && SingletonManager.TryGetSingletonInstance<IVoxelVolume>(out _);
+                && SingletonManager.TryGetSingletonInstance<IVolume>(out _);
 
         public static bool IsActive() {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
@@ -20,6 +20,7 @@ namespace Spellbound.MarchingCubes {
 
         public static bool IsInsideTerrain(Vector3 position) {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+
             return mcManager.QueryVoxel(position).Density >= mcManager.McConfigBlob.Value.DensityThreshold;
         }
 
@@ -29,16 +30,15 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
-            var terraformAction = TerraformCommands.RemoveSphere(position, 
-                3f, 
+
+            var terraformAction = TerraformCommands.RemoveSphere(position,
+                3f,
                 byte.MaxValue
-                );
-            
+            );
+
             var diggableMaterials = new List<MaterialType> { MaterialType.Dirt, MaterialType.Swamp, MaterialType.Ice };
             mcManager.ExecuteTerraform(terraformAction, diggableMaterials.ToHashSet());
-            
         }
-
 
         public static void RemoveSphere(
             Vector3 position,
@@ -50,11 +50,12 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
-            var terraformAction = TerraformCommands.RemoveSphere(position, 
-                radius, 
+
+            var terraformAction = TerraformCommands.RemoveSphere(position,
+                radius,
                 delta
             );
-            
+
             mcManager.ExecuteTerraform(terraformAction, diggableMaterialTypes.ToHashSet());
         }
 
@@ -64,8 +65,9 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
-            var terraformAction = TerraformCommands.RemoveSphere(position, 
-                radius, 
+
+            var terraformAction = TerraformCommands.RemoveSphere(position,
+                radius,
                 delta
             );
 
@@ -85,11 +87,12 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
-            var terraformAction =  TerraformCommands.AddSphere(position,
+
+            var terraformAction = TerraformCommands.AddSphere(position,
                 MaterialType.Ice,
                 radius,
                 delta);
-            
+
             mcManager.ExecuteTerraform(terraformAction);
         }
     }

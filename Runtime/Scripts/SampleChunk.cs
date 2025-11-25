@@ -10,19 +10,19 @@ namespace Spellbound.MarchingCubes {
         private VoxChunk _voxChunk;
         public VoxChunk VoxelChunk => _voxChunk;
 
-        void Awake() => _voxChunk = new VoxChunk(this);
-        
+        private void Awake() => _voxChunk = new VoxChunk(this);
+
         public void InitializeChunk(NativeList<SparseVoxelData> voxels) => VoxelChunk.InitializeVoxels(voxels);
-        
+
         public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
-            if (VoxelChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds)){
+            if (VoxelChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds)) {
                 //play sounds
                 VoxelChunk.ValidateOctreeEdits(editBounds);
             }
         }
 
         private void OnDestroy() => _voxChunk.Dispose();
-        
+
         private void OnDrawGizmos() {
             ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
             var worldSize = (Vector3)VoxelChunk.Bounds.size * config.Resolution;

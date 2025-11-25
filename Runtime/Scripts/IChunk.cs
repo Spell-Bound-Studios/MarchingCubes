@@ -2,7 +2,6 @@
 
 using System.Collections.Generic;
 using Unity.Collections;
-using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
@@ -12,8 +11,7 @@ namespace Spellbound.MarchingCubes {
         VoxChunk VoxelChunk { get; }
 
         public void InitializeChunk(NativeList<SparseVoxelData> voxels); //polymorphic
-        
+
         public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits); //polymorphic
-        
     }
 }

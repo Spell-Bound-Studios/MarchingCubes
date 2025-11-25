@@ -25,12 +25,14 @@ namespace Spellbound.MarchingCubes {
         private NativeList<int> _allTransitionTriangles;
         private NativeList<int> _filteredTransitionTriangles;
         private NativeArray<int2> _transitionRanges;
-        private Vector3Int _localPosition;  // Chunk-local voxel position
+        private Vector3Int _localPosition; // Chunk-local voxel position
         private readonly int _lod;
-        private BoundsInt _boundsVoxel;  // Chunk-local voxel space bounds
+        private BoundsInt _boundsVoxel; // Chunk-local voxel space bounds
         private readonly VoxChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
         private readonly Transform _volumeOriginTransform;
+
+        private Vector3 Center => (_boundsVoxel.min + _boundsVoxel.max - Vector3.one) * 0.5f;
 
         private bool IsLeaf => _children == null;
 
@@ -44,12 +46,6 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref _mcManager.McConfigBlob.Value;
             var octreeSizeVoxels = 3 + (config.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
-        }
-
-        private Vector3 GetWorldCenterPosition() {
-            ref var config = ref _mcManager.McConfigBlob.Value;
-            var localCenter = ((Vector3)_boundsVoxel.min + (Vector3)_boundsVoxel.max) / 2f * config.Resolution;
-            return _chunk.Transform.TransformPoint(localCenter);
         }
 
         public void Dispose() {
@@ -111,15 +107,13 @@ namespace Spellbound.MarchingCubes {
         public void ValidateMaterial() {
             if (_leafGo != null) {
                 SetMaterialOrigin();
+
                 return;
             }
 
-            if (_children == null) {
-                return;
-            }
-            foreach (var child in _children) {
-                child.ValidateMaterial();
-            }
+            if (_children == null) return;
+
+            foreach (var child in _children) child.ValidateMaterial();
         }
 
         private void SetMaterialOrigin() {
@@ -135,12 +129,11 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            var octreeWorldPos = GetWorldCenterPosition();
-            var targetLod = GetLodRange(octreeWorldPos, playerPosition);
+            var targetLod = GetLodRange(Center, playerPosition);
 
             if (_chunk.DensityRange.IsSkippable())
                 return;
-            
+
             if (_lod <= targetLod) {
                 if (_leafGo == null)
                     MakeLeaf(voxelArray);
@@ -158,12 +151,11 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeEdits(BoundsInt boundsVoxel, NativeArray<VoxelData> voxelArray) {
-            if (!BoundsIntersect(_boundsVoxel, boundsVoxel)) {
-                return;
-            }
+            if (!BoundsIntersect(_boundsVoxel, boundsVoxel)) return;
 
             if (IsLeaf) {
                 UpdateLeaf(voxelArray);
+
                 return;
             }
 
@@ -171,11 +163,10 @@ namespace Spellbound.MarchingCubes {
                 child.ValidateOctreeEdits(boundsVoxel, voxelArray);
         }
 
-        private bool BoundsIntersect(BoundsInt a, BoundsInt b) {
-            return (a.min.x <= b.max.x && a.max.x >= b.min.x) &&
-                   (a.min.y <= b.max.y && a.max.y >= b.min.y) &&
-                   (a.min.z <= b.max.z && a.max.z >= b.min.z);
-        }
+        private bool BoundsIntersect(BoundsInt a, BoundsInt b) =>
+                a.min.x <= b.max.x && a.max.x >= b.min.x &&
+                a.min.y <= b.max.y && a.max.y >= b.min.y &&
+                a.min.z <= b.max.z && a.max.z >= b.min.z;
 
         public void ValidateTransition(
             OctreeNode neighbor, Vector3Int voxelPos, McStaticHelper.TransitionFaceMask faceMask) {
@@ -426,20 +417,21 @@ namespace Spellbound.MarchingCubes {
 
         private void BroadcastNewLeaf() {
             var neighborVoxelPositions = GetFaceCentersVoxel();
-            for (var i = 0; i < 6; i++) 
+
+            for (var i = 0; i < 6; i++)
                 _chunk.BroadcastNewLeafAcrossChunks(this, neighborVoxelPositions[i], i);
         }
 
         private Vector3Int[] GetFaceCentersVoxel() {
             var center = (_boundsVoxel.min + _boundsVoxel.max) / 2;
-    
+
             return new[] {
                 new Vector3Int(_boundsVoxel.min.x - 1, center.y, center.z), // XMin face (outside left)
                 new Vector3Int(center.x, _boundsVoxel.min.y - 1, center.z), // YMin face (outside bottom)
                 new Vector3Int(center.x, center.y, _boundsVoxel.min.z - 1), // ZMin face (outside back)
-                new Vector3Int(_boundsVoxel.max.x + 1, center.y, center.z),     // XMax face (at boundary right)
-                new Vector3Int(center.x, _boundsVoxel.max.y + 1, center.z),     // YMax face (at boundary top)
-                new Vector3Int(center.x, center.y, _boundsVoxel.max.z + 1),     // ZMax face (at boundary front)
+                new Vector3Int(_boundsVoxel.max.x + 1, center.y, center.z), // XMax face (at boundary right)
+                new Vector3Int(center.x, _boundsVoxel.max.y + 1, center.z), // YMax face (at boundary top)
+                new Vector3Int(center.x, center.y, _boundsVoxel.max.z + 1)  // ZMax face (at boundary front)
             };
         }
 
