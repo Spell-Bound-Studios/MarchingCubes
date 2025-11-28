@@ -68,7 +68,7 @@ namespace Spellbound.MarchingCubes {
 
         public static Func<IVolume, List<RawVoxelEdit>> AddSphere(
             Vector3 worldPosition,
-            MaterialType addedMaterial,
+            byte addedMaterial,
             float radius,
             int delta) =>
                 (iVoxelVolume) => {

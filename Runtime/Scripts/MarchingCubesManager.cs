@@ -18,6 +18,9 @@ namespace Spellbound.MarchingCubes {
         public BlobAssetReference<McConfigBlobAsset> McConfigBlob { get; private set; }
         public BlobAssetReference<McChunkInterpolationBlobAsset> McChunkInterpolationBlob { get; private set; }
         [SerializeField] public GameObject octreePrefab;
+        [SerializeField] public VoxelMaterialDatabase materialDatabase;
+        private Material _runtimeVoxelMaterial;
+        
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
         private HashSet<IVolume> _voxelVolumes = new();
@@ -48,6 +51,35 @@ namespace Spellbound.MarchingCubes {
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeSharedIndicesLookup();
+            InitializeVoxelMaterial();
+        }
+        
+        private void InitializeVoxelMaterial() {
+            if (octreePrefab == null) {
+                Debug.LogError("Octree prefab not assigned!");
+                return;
+            }
+    
+            var renderer = octreePrefab.GetComponent<MeshRenderer>();
+            if (renderer == null || renderer.sharedMaterial == null) {
+                Debug.LogError("Octree prefab has no MeshRenderer or Material!");
+                return;
+            }
+    
+            // Create runtime instance from prefab's material
+            _runtimeVoxelMaterial = new Material(renderer.sharedMaterial);
+    
+            // Apply texture arrays from database
+            if (materialDatabase != null) {
+                if (materialDatabase.albedoTextureArray != null && materialDatabase.masTextureArray != null) {
+                    _runtimeVoxelMaterial.SetTexture("_TerrainAlbedoArray", materialDatabase.albedoTextureArray);
+                    _runtimeVoxelMaterial.SetTexture("_TerrainMetalSmoothArray", materialDatabase.masTextureArray);
+                } else {
+                    Debug.LogError("Texture arrays not built! Use 'Build Texture Arrays' on VoxelMaterialDatabase.");
+                }
+            } else {
+                Debug.LogError("No VoxelMaterialDatabase assigned!");
+            }
         }
 
         private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
@@ -86,11 +118,17 @@ namespace Spellbound.MarchingCubes {
                 go = _objectPool.Pop();
                 go.SetActive(true);
             }
-            else
+            else {
                 go = Instantiate(octreePrefab);
+        
+                // Apply the runtime material to new instances
+                var renderer = go.GetComponent<MeshRenderer>();
+                if (renderer != null) {
+                    renderer.sharedMaterial = _runtimeVoxelMaterial;
+                }
+            }
 
             go.transform.SetParent(parent, false);
-
             return go;
         }
 
@@ -112,7 +150,7 @@ namespace Spellbound.MarchingCubes {
 
         public void ExecuteTerraform(
             Func<IVolume, List<RawVoxelEdit>> terraformAction,
-            HashSet<MaterialType> removableMatTypes = null,
+            HashSet<byte> removableMatTypes = null,
             IVolume targetVolume = null) {
             if (targetVolume != null) {
                 var edits = terraformAction(targetVolume);
@@ -133,7 +171,7 @@ namespace Spellbound.MarchingCubes {
         /// This is required because there's data overlap between the chunks. 
         /// </summary>
         public void DistributeVoxelEdits(
-            IVolume volume, List<RawVoxelEdit> rawVoxelEdits, HashSet<MaterialType> removableMatTypes = null) {
+            IVolume volume, List<RawVoxelEdit> rawVoxelEdits, HashSet<byte> removableMatTypes = null) {
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
 
             ref var config = ref McConfigBlob.Value;
@@ -158,12 +196,12 @@ namespace Spellbound.MarchingCubes {
                 var existingVoxel = chunk.VoxelChunk.GetVoxelData(index);
 
                 if (rawEdit.DensityChange < 0 && removableMatTypes != null &&
-                    !removableMatTypes.Contains(existingVoxel.MaterialType)) continue;
+                    !removableMatTypes.Contains(existingVoxel.MaterialIndex)) continue;
 
                 var newDensity = (byte)Mathf.Clamp(existingVoxel.Density + rawEdit.DensityChange, 0, 255);
 
                 var mat = math.abs(rawEdit.DensityChange) - existingVoxel.Density <= 0
-                        ? existingVoxel.MaterialType
+                        ? existingVoxel.MaterialIndex
                         : rawEdit.NewMatIndex;
 
                 var localEdit = new VoxelEdit(index, newDensity, mat);

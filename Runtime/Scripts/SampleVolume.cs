@@ -65,9 +65,13 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref mcManager.McConfigBlob.Value;
 
             var halfChunk = config.ChunkSize / 2;
+            
+            var grassIndex = mcManager.materialDatabase.GetMaterialIndex("Grass");
+            var swampIndex = mcManager.materialDatabase.GetMaterialIndex("Swamp");
 
             _data = new NativeList<SparseVoxelData>(Allocator.Persistent);
-            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand), 0));
+            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, swampIndex), 0));
+            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, grassIndex), 60 * config.ChunkDataAreaSize));
         }
 
         public IEnumerator Initialize(int chunkSize) {

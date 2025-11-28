@@ -141,15 +141,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: volumeSizeInChunks.x
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: volumeSizeInChunks.y
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: volumeSizeInChunks.z
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _boundaryOverrides.Array.size
@@ -840,6 +840,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _terrainConfig: {fileID: 11400000, guid: 9d538542db90cab4a959c742aee04ae9, type: 2}
   octreePrefab: {fileID: 2677637181052615796, guid: 9a7674aaa7f6410458e017bb736f98a4, type: 3}
+  materialDatabase: {fileID: 11400000, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
   useColliders: 1
 --- !u!4 &1233227655
 Transform:

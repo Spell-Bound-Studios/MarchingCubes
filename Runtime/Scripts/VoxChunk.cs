@@ -131,7 +131,7 @@ namespace Spellbound.MarchingCubes {
                 var existingVoxel = voxelArray[index];
 
                 if (voxelEdit.density == existingVoxel.Density &&
-                    voxelEdit.MaterialType == existingVoxel.MaterialType)
+                    voxelEdit.MaterialType == existingVoxel.MaterialIndex)
                     continue;
 
                 voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);

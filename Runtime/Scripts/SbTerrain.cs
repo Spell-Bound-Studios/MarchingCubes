@@ -36,13 +36,13 @@ namespace Spellbound.MarchingCubes {
                 byte.MaxValue
             );
 
-            var diggableMaterials = new List<MaterialType> { MaterialType.Dirt, MaterialType.Swamp, MaterialType.Ice };
+            var diggableMaterials = new List<byte> { 0, 1, 2 };
             mcManager.ExecuteTerraform(terraformAction, diggableMaterials.ToHashSet());
         }
 
         public static void RemoveSphere(
             Vector3 position,
-            List<MaterialType> diggableMaterialTypes,
+            List<byte> diggableMaterialTypes,
             float radius,
             int delta) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
@@ -71,7 +71,7 @@ namespace Spellbound.MarchingCubes {
                 delta
             );
 
-            var diggableMaterials = McStaticHelper.GetAllMaterialTypes().ToList();
+            var diggableMaterials = new List<byte> { 0, 1, 2, 3 };
             mcManager.ExecuteTerraform(terraformAction, diggableMaterials.ToHashSet());
         }
 
@@ -89,7 +89,7 @@ namespace Spellbound.MarchingCubes {
             }
 
             var terraformAction = TerraformCommands.AddSphere(position,
-                MaterialType.Ice,
+                3,
                 radius,
                 delta);
 
