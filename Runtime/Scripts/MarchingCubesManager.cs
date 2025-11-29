@@ -14,8 +14,6 @@ namespace Spellbound.MarchingCubes {
     [DefaultExecutionOrder(-1000)]
     public partial class MarchingCubesManager : MonoBehaviour {
         public BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
-        [SerializeField] private TerrainConfig _terrainConfig;
-        public BlobAssetReference<McConfigBlobAsset> McConfigBlob { get; private set; }
         public BlobAssetReference<McChunkInterpolationBlobAsset> McChunkInterpolationBlob { get; private set; }
         [SerializeField] public GameObject octreePrefab;
         [SerializeField] public VoxelMaterialDatabase materialDatabase;
@@ -24,7 +22,6 @@ namespace Spellbound.MarchingCubes {
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
         private HashSet<IVolume> _voxelVolumes = new();
-        private Dictionary<int, List<Vector3Int>> _sharedIndicesLookup = new();
 
         public bool IsActive() => _isActive;
         private bool _isShuttingDown;
@@ -38,13 +35,12 @@ namespace Spellbound.MarchingCubes {
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
-            McConfigBlob = McConfigBlobCreator.CreateMcConfigBlobAsset(_terrainConfig);
 
+            // TODO: magic number
             McChunkInterpolationBlob =
                     McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(128);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
-            InitializeSharedIndicesLookup();
             InitializeVoxelMaterial();
         }
         
@@ -83,10 +79,7 @@ namespace Spellbound.MarchingCubes {
 
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
-
-            if (McConfigBlob.IsCreated)
-                McConfigBlob.Dispose();
-
+            
             if (McChunkInterpolationBlob.IsCreated)
                 McChunkInterpolationBlob.Dispose();
 
@@ -97,13 +90,16 @@ namespace Spellbound.MarchingCubes {
             }
         }
 
-        public void RegisterVoxelVolume(IVolume volume, int dataSize) {
+        public void RegisterVoxelVolume(IVolume volume, int chunkSize) {
+            Debug.Log($"Registering volume with chunkSize={chunkSize}, expected data size={(chunkSize+3)*(chunkSize+3)*(chunkSize+3)}");
             _voxelVolumes.Add(volume);
 
-            if (!_denseVoxelDataDict.ContainsKey(dataSize)) { 
-                _denseVoxelDataDict.Add(dataSize, new DenseVoxelData(dataSize));
+            if (!_denseVoxelDataDict.ContainsKey(chunkSize)) { 
+                var denseData = new DenseVoxelData(chunkSize);
+                Debug.Log($"Created DenseVoxelData with array length={denseData.DenseVoxelArray.Length}");
+                _denseVoxelDataDict.Add(chunkSize, denseData);
             }
-        } 
+        }
         
         public GameObject GetPooledObject(Transform parent) {
             GameObject go;
@@ -171,11 +167,11 @@ namespace Spellbound.MarchingCubes {
             IVolume volume, List<RawVoxelEdit> rawVoxelEdits, HashSet<byte> removableMatTypes = null) {
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
 
-            ref var config = ref McConfigBlob.Value;
+            ref var config = ref volume.VoxelVolume.ConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
                 var centralCoord = volume.VoxelVolume.GetCoordByVoxelPosition(rawEdit.WorldPosition);
-                var centralLocalPos = rawEdit.WorldPosition - centralCoord * McConfigBlob.Value.ChunkSize;
+                var centralLocalPos = rawEdit.WorldPosition - centralCoord * config.ChunkSize;
 
                 var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
                     config.ChunkDataAreaSize, config.ChunkDataWidthSize);
@@ -184,6 +180,10 @@ namespace Spellbound.MarchingCubes {
 
                 if (chunk == null)
                     continue;
+
+                if (!_denseVoxelDataDict.TryGetValue(volume.VoxelVolume.ConfigBlob.Value.ChunkSize,
+                        out var denseVoxelData))
+                    return;
 
                 if (!editsByChunkCoord.TryGetValue(centralCoord, out var localEdits)) {
                     localEdits = new List<VoxelEdit>();
@@ -203,8 +203,10 @@ namespace Spellbound.MarchingCubes {
 
                 var localEdit = new VoxelEdit(index, newDensity, mat);
                 localEdits.Add(localEdit);
+                
+                
 
-                if (_sharedIndicesLookup.TryGetValue(index, out var neighborCoords)) {
+                if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
                         var trueNeighborCoord = neighborCoord + centralCoord;
                         var neighborLocalPos = rawEdit.WorldPosition - trueNeighborCoord * config.ChunkSize;
@@ -252,54 +254,6 @@ namespace Spellbound.MarchingCubes {
             }
 
             return new VoxelData();
-        }
-
-        private void InitializeSharedIndicesLookup() {
-            List<Vector3Int> neighborCoords = new();
-
-            for (var dx = -1; dx <= 1; dx++) {
-                for (var dy = -1; dy <= 1; dy++) {
-                    for (var dz = -1; dz <= 1; dz++) {
-                        var coordDelta = new Vector3Int(dx, dy, dz);
-
-                        if (coordDelta == Vector3Int.zero)
-                            continue;
-
-                        neighborCoords.Add(new Vector3Int(dx, dy, dz));
-                    }
-                }
-            }
-
-            ref var config = ref McConfigBlob.Value;
-
-            var chunkBounds = new BoundsInt(
-                0,
-                0,
-                0,
-                config.ChunkSize + 3,
-                config.ChunkSize + 3,
-                config.ChunkSize + 3
-            );
-
-            for (var i = 0; i < config.ChunkDataVolumeSize; i++) {
-                McStaticHelper.IndexToInt3(i, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x, out var y,
-                    out var z);
-                var localPos = new Vector3Int(x, y, z);
-
-                foreach (var coord in neighborCoords) {
-                    var localPosNeighbor = localPos - coord * config.ChunkSize;
-
-                    if (!chunkBounds.Contains(localPosNeighbor))
-                        continue;
-
-                    if (!_sharedIndicesLookup.TryGetValue(i, out var coordsSharingIndex)) {
-                        coordsSharingIndex = new List<Vector3Int>();
-                        _sharedIndicesLookup[i] = coordsSharingIndex;
-                    }
-
-                    coordsSharingIndex.Add(coord);
-                }
-            }
         }
     }
 }

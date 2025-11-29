@@ -35,8 +35,8 @@ namespace Spellbound.MarchingCubes {
         public bool IntersectsVolume(Bounds worldBounds) {
             if (IsPrimaryTerrain)
                 return true;
-            
-            float resolution = _mcManager.McConfigBlob.Value.Resolution;
+
+            float resolution = _ownerAsIVolume.Config.resolution;
     
             // Convert the 8 corners of the world bounds into local voxel space
             Vector3[] worldCorners = new Vector3[8];
@@ -77,13 +77,12 @@ namespace Spellbound.MarchingCubes {
         }
 
         public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
-            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
             var localPos = Transform.InverseTransformPoint(worldPosition);
 
             return new Vector3Int(
-                Mathf.FloorToInt(localPos.x / config.Resolution),
-                Mathf.FloorToInt(localPos.y / config.Resolution),
-                Mathf.FloorToInt(localPos.z / config.Resolution)
+                Mathf.FloorToInt(localPos.x / _ownerAsIVolume.Config.resolution),
+                Mathf.FloorToInt(localPos.y / _ownerAsIVolume.Config.resolution),
+                Mathf.FloorToInt(localPos.z / _ownerAsIVolume.Config.resolution)
             );
         }
 
@@ -102,7 +101,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         public Vector3Int GetCoordByVoxelPosition(Vector3Int voxelPos) {
-            ref var config = ref _mcManager.McConfigBlob.Value;
+            ref var config = ref ConfigBlob.Value;
 
             return new Vector3Int(
                 Mathf.FloorToInt((voxelPos.x - 1f) / config.ChunkSize),
@@ -126,7 +125,11 @@ namespace Spellbound.MarchingCubes {
                         continue;
 
                     var lodDistanceTargetTransformed = Transform.InverseTransformPoint(_lodTarget.position);
-                    chunk.VoxelChunk.ValidateOctreeLods(lodDistanceTargetTransformed);
+            
+                    // ✅ Convert from world scale to voxel space
+                    var lodDistanceTargetVoxelSpace = lodDistanceTargetTransformed / _ownerAsIVolume.Config.resolution;
+            
+                    chunk.VoxelChunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
 
                     yield return null;
                 }
@@ -143,9 +146,9 @@ namespace Spellbound.MarchingCubes {
         }
 
         private IChunk CreateChunk(Vector3Int chunkCoord) {
-            ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
+            ref var config = ref ConfigBlob.Value;
 
-            var localChunkPos = ((Vector3)chunkCoord * (config.ChunkSize * config.Resolution));
+            var localChunkPos = ((Vector3)chunkCoord * (config.ChunkSize * _ownerAsIVolume.Config.resolution));
             var worldChunkPos = Transform.TransformPoint(localChunkPos);
 
             var chunkObj = Object.Instantiate(

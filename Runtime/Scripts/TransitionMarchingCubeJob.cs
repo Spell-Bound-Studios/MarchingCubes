@@ -16,7 +16,7 @@ namespace Spellbound.MarchingCubes {
     [BurstCompile]
     public struct TransitionMarchingCubeJob : IJob {
         [ReadOnly] public BlobAssetReference<McTablesBlobAsset> TablesBlob;
-        [ReadOnly] public BlobAssetReference<McConfigBlobAsset> ConfigBlob;
+        [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
 
         [NativeDisableParallelForRestriction, ReadOnly]
         public NativeArray<VoxelData> VoxelArray;

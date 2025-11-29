@@ -21,6 +21,9 @@ namespace Spellbound.MarchingCubes {
 
                 return new DenseVoxelData().DenseVoxelArray;
             }
+
+            ref var config = ref chunk.ParentVolume.VoxelVolume.ConfigBlob.Value;
+            
             if (denseVoxelData.IsArrayInUse) {
                 if (chunk != denseVoxelData.CurrentChunk) {
                     Debug.LogError(
@@ -46,15 +49,15 @@ namespace Spellbound.MarchingCubes {
             denseVoxelData.IsArrayInUse = true;
             denseVoxelData.CurrentChunk = chunk;
 
-            denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, McConfigBlob.Value.DensityThreshold);
+            denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, config.DensityThreshold);
 
             var unpackJob = new SparseToDenseVoxelDataJob {
-                ConfigBlob = McConfigBlob,
+                ConfigBlob = chunk.ParentVolume.VoxelVolume.ConfigBlob,
                 Voxels = denseVoxelData.DenseVoxelArray,
                 SparseVoxels = sparseData,
                 DensityRange = denseVoxelData.DensityRange
             };
-            var jobHandle = unpackJob.Schedule(McConfigBlob.Value.ChunkDataWidthSize, 1);
+            var jobHandle = unpackJob.Schedule(config.ChunkDataWidthSize, 1);
             jobHandle.Complete();
 
             return denseVoxelData.DenseVoxelArray;
@@ -107,12 +110,15 @@ namespace Spellbound.MarchingCubes {
         public class DenseVoxelData : IDisposable {
             public NativeArray<VoxelData> DenseVoxelArray;
             public NativeArray<DensityRange> DensityRange;
+            public Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
             public bool IsArrayInUse;
             public VoxChunk CurrentChunk;
             
-            public DenseVoxelData(int voxelCount, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
-                DenseVoxelArray = new NativeArray<VoxelData>(voxelCount, allocator);
+            public DenseVoxelData(int chunkSize, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
+                var cs = chunkSize + 3;
+                DenseVoxelArray = new NativeArray<VoxelData>(cs * cs * cs, allocator);
                 DensityRange = new NativeArray<DensityRange>(1, allocator);
+                SharedIndicesAcrossChunks = InitializeSharedIndicesLookup(chunkSize);
                 IsArrayInUse = false;
                 CurrentChunk = null;
             }
@@ -122,6 +128,56 @@ namespace Spellbound.MarchingCubes {
                 DensityRange = default;
                 IsArrayInUse = false;
                 CurrentChunk = null;
+            }
+            
+            private Dictionary<int, List<Vector3Int>> InitializeSharedIndicesLookup(int chunkSize) {
+                var sharedIndices = new Dictionary<int, List<Vector3Int>>();
+                var cs = chunkSize + 3;
+                List<Vector3Int> neighborCoords = new();
+
+                for (var dx = -1; dx <= 1; dx++) {
+                    for (var dy = -1; dy <= 1; dy++) {
+                        for (var dz = -1; dz <= 1; dz++) {
+                            var coordDelta = new Vector3Int(dx, dy, dz);
+
+                            if (coordDelta == Vector3Int.zero)
+                                continue;
+
+                            neighborCoords.Add(new Vector3Int(dx, dy, dz));
+                        }
+                    }
+                }
+            
+
+                var chunkBounds = new BoundsInt(
+                    0,
+                    0,
+                    0,
+                    chunkSize + 3,
+                    chunkSize + 3,
+                    chunkSize + 3
+                );
+
+                for (var i = 0; i < cs * cs * cs; i++) {
+                    McStaticHelper.IndexToInt3(i, cs * cs, cs, out var x, out var y,
+                        out var z);
+                    var localPos = new Vector3Int(x, y, z);
+
+                    foreach (var coord in neighborCoords) {
+                        var localPosNeighbor = localPos - coord * chunkSize;
+
+                        if (!chunkBounds.Contains(localPosNeighbor))
+                            continue;
+
+                        if (!sharedIndices.TryGetValue(i, out var coordsSharingIndex)) {
+                            coordsSharingIndex = new List<Vector3Int>();
+                            sharedIndices[i] = coordsSharingIndex;
+                        }
+
+                        coordsSharingIndex.Add(coord);
+                    }
+                }
+                return sharedIndices;
             }
             
             public void Dispose() {

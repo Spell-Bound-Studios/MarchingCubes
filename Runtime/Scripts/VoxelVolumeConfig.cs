@@ -23,15 +23,27 @@ namespace Spellbound.MarchingCubes {
             ValidateVolumeSize();
         }
 
-        void ValidateChunkSize() {
+        private void ValidateChunkSize() {
             chunkSize = cubesPerMarch;
-            for (var i = 0; i < cubesPerMarch; ++i) {
-                var largerChunkSize = chunkSize * 2;
-
-                if (largerChunkSize > maxChunkSize)
-                    break;
-                
-                chunkSize = largerChunkSize;
+    
+            // Keep doubling until we reach maxChunkSize
+            while (chunkSize * 2 <= maxChunkSize) {
+                chunkSize *= 2;
+            }
+    
+            // Now calculate LOD levels based on resulting chunk size
+            // LOD levels = log2(chunkSize / cubesPerMarch)
+            int calculatedLod = 0;
+            int tempSize = cubesPerMarch;
+            while (tempSize < chunkSize) {
+                tempSize *= 2;
+                calculatedLod++;
+            }
+    
+            // Make sure levelsOfDetail matches
+            if (levelsOfDetail != calculatedLod + 1) {
+                Debug.LogWarning($"Adjusted levelsOfDetail from {levelsOfDetail} to {calculatedLod + 1} to match chunkSize {chunkSize}");
+                levelsOfDetail = calculatedLod + 1;
             }
         }
 

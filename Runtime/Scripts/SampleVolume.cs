@@ -36,7 +36,7 @@ namespace Spellbound.MarchingCubes {
 
         private void Start() {
             if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager))
-                mcManager.RegisterVoxelVolume(this, mcManager.McConfigBlob.Value.ChunkDataVolumeSize);
+                mcManager.RegisterVoxelVolume(this, VoxelVolume.ConfigBlob.Value.ChunkSize);
             else {
                 Debug.LogError("MarchingCubesManager is null.");
 
@@ -55,7 +55,7 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            ref var config = ref mcManager.McConfigBlob.Value;
+            ref var config = ref VoxelVolume.ConfigBlob.Value;
             GenerateSimpleData();
             StartCoroutine(Initialize(config.ChunkSize));
             VoxelVolume.SetLodTarget(Camera.main.transform);
@@ -76,7 +76,7 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            ref var config = ref mcManager.McConfigBlob.Value;
+            ref var config = ref VoxelVolume.ConfigBlob.Value;
 
             var halfChunk = config.ChunkSize / 2;
             
@@ -85,19 +85,21 @@ namespace Spellbound.MarchingCubes {
 
             _data = new NativeList<SparseVoxelData>(Allocator.Persistent);
             _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, swampIndex), 0));
-            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, grassIndex), 60 * config.ChunkDataAreaSize));
+            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, grassIndex), halfChunk * config.ChunkDataAreaSize));
         }
 
         public IEnumerator Initialize(int chunkSize) {
+            var size = VoxelVolume.ConfigBlob.Value.SizeInChunks;
+            Debug.Log($" size in chunks: {size}");
             var offset = new Vector3Int(
-                _config.sizeInChunks.x / 2,
-                _config.sizeInChunks.y / 2,
-                _config.sizeInChunks.z / 2
+                size.x / 2,
+                size.y / 2,
+                size.z / 2
             );
 
-            for (var x = 0; x < _config.sizeInChunks.x; x++) {
-                for (var y = 0; y < _config.sizeInChunks.y; y++) {
-                    for (var z = 0; z < _config.sizeInChunks.z; z++) {
+            for (var x = 0; x < size.x; x++) {
+                for (var y = 0; y < size.y; y++) {
+                    for (var z = 0; z < size.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
                         var chunk = VoxelVolume.RegisterChunk(chunkCoord);
 
@@ -178,7 +180,7 @@ namespace Spellbound.MarchingCubes {
                 return new BoundsInt();
             }
 
-            ref var config = ref mcManager.McConfigBlob.Value;
+            ref var config = ref VoxelVolume.ConfigBlob.Value;
     
             // Calculate total size in voxels
             Vector3Int sizeInVoxels = new Vector3Int(

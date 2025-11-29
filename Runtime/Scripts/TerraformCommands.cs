@@ -12,21 +12,18 @@ namespace Spellbound.MarchingCubes {
             float radius,
             int delta) =>
                 (iVoxelVolume) => {
-                    ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob
-                            .Value;
-
                     // Convert world position to volume-local space
                     var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
 
                     // Convert to voxel coordinates
                     var voxelCenter = new Vector3(
-                        localPos.x / config.Resolution,
-                        localPos.y / config.Resolution,
-                        localPos.z / config.Resolution
+                        localPos.x / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
+                        localPos.y / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
+                        localPos.z / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution
                     );
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
-                    var radiusVoxels = radius / config.Resolution;
+                    var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
 
                     var r = Mathf.CeilToInt(radiusVoxels);
                     var radiusSq = radiusVoxels * radiusVoxels;
@@ -75,21 +72,18 @@ namespace Spellbound.MarchingCubes {
             float radius,
             int delta) =>
                 (iVoxelVolume) => {
-                    ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob
-                            .Value;
-
                     // Convert world position to volume-local space
                     var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
 
                     // Convert to voxel coordinates
                     var voxelCenter = new Vector3(
-                        localPos.x / config.Resolution,
-                        localPos.y / config.Resolution,
-                        localPos.z / config.Resolution
+                        localPos.x / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
+                        localPos.y / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
+                        localPos.z / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution
                     );
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
-                    var radiusVoxels = radius / config.Resolution;
+                    var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
 
                     var r = Mathf.CeilToInt(radiusVoxels);
                     var radiusSq = radiusVoxels * radiusVoxels;

@@ -43,9 +43,9 @@ namespace Spellbound.MarchingCubes {
             _chunk = chunk;
 
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
-            ref var config = ref _mcManager.McConfigBlob.Value;
-            var octreeSizeVoxels = 3 + (config.CubesMarchedPerOctreeLeaf << _lod);
+            var octreeSizeVoxels = 3 + (_parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
+            
         }
 
         public void Dispose() {
@@ -91,7 +91,7 @@ namespace Spellbound.MarchingCubes {
 
             _children = new OctreeNode[8];
             var childLod = _lod - 1;
-            var childSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
+            var childSize = _parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
 
             for (var i = 0; i < 8; i++) {
                 var offset = new Vector3Int(
@@ -215,7 +215,7 @@ namespace Spellbound.MarchingCubes {
         private void MarchAndMesh(NativeArray<VoxelData> voxelArray) {
             var marchingCubeJob = new MarchingCubeJob {
                 TablesBlob = _mcManager.McTablesBlob,
-                ConfigBlob = _mcManager.McConfigBlob,
+                ConfigBlob = _parentVolume.VoxelVolume.ConfigBlob,
                 VoxelArray = voxelArray,
 
                 Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -231,7 +231,7 @@ namespace Spellbound.MarchingCubes {
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
                     TablesBlob = _mcManager.McTablesBlob,
-                    ConfigBlob = _mcManager.McConfigBlob,
+                    ConfigBlob = _parentVolume.VoxelVolume.ConfigBlob,
                     VoxelArray = voxelArray,
 
                     TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -274,7 +274,7 @@ namespace Spellbound.MarchingCubes {
             _mesh = new Mesh();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
 
-            _leafGo.name = $"LeafSize {_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
+            _leafGo.name = $"LeafSize {_parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
         }
 
