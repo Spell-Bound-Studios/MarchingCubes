@@ -4,17 +4,20 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Spellbound.Core;
+using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public class VoxVolume {
         private readonly MonoBehaviour _owner;
+        private readonly IVolume _ownerAsIVolume;
         private readonly MarchingCubesManager _mcManager;
         private Dictionary<Vector3Int, IChunk> _chunkDict = new();
         private GameObject _chunkPrefab;
         private Transform _lodTarget;
         private bool _isPrimaryTerrain = false;
         private BoundsInt _bounds;
+        public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
 
         public Transform Transform => _owner.transform;
         public Dictionary<Vector3Int, IChunk> ChunkDict => _chunkDict;
@@ -65,10 +68,12 @@ namespace Spellbound.MarchingCubes {
             return volumeBounds.Intersects(localWorldBounds);
         }
 
-        public VoxVolume(MonoBehaviour owner, GameObject chunkPrefab) {
+        public VoxVolume(MonoBehaviour owner, IVolume ownerAsIVolume, GameObject chunkPrefab) {
             _owner = owner;
+            _ownerAsIVolume = ownerAsIVolume;
             _chunkPrefab = chunkPrefab;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(_ownerAsIVolume.Config);
         }
 
         public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
@@ -140,7 +145,7 @@ namespace Spellbound.MarchingCubes {
         private IChunk CreateChunk(Vector3Int chunkCoord) {
             ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value;
 
-            var localChunkPos = (Vector3)(chunkCoord * config.ChunkSizeResolution);
+            var localChunkPos = ((Vector3)chunkCoord * (config.ChunkSize * config.Resolution));
             var worldChunkPos = Transform.TransformPoint(localChunkPos);
 
             var chunkObj = Object.Instantiate(
@@ -162,5 +167,23 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void SetLodTarget(Transform target) => _lodTarget = target;
+        
+        public static Vector2[] ValidateLodRanges(Vector2[] lodRanges, VoxelVolumeConfig config) {
+            // Ensure correct array length
+            if (lodRanges == null || lodRanges.Length != config.levelsOfDetail) {
+                lodRanges = new Vector2[config.levelsOfDetail];
+            }
+    
+            float dist = 0f;
+    
+            for (int i = 0; i < lodRanges.Length; i++) {
+                lodRanges[i].x = dist;
+                lodRanges[i].y = Mathf.Max(lodRanges[i].y, 
+                    lodRanges[i].x + 3 * (config.cubesPerMarch << i));
+                dist = lodRanges[i].y;
+            }
+    
+            return lodRanges;
+        }
     }
 }
