@@ -459,7 +459,7 @@ PrefabInstance:
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _config
       value: 
-      objectReference: {fileID: 11400000, guid: a03a4bc342121b6448c267e345a3a43b, type: 2}
+      objectReference: {fileID: 11400000, guid: 788305996941b9a4c963937b4423bf31, type: 2}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _boundaryOverrides
       value: 
@@ -530,31 +530,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[0].y
-      value: 4.8
+      value: 79.1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[1].x
-      value: 4.8
+      value: 79.1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[1].y
-      value: 14.400001
+      value: 143.1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[2].x
-      value: 14.400001
+      value: 143.1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[2].y
-      value: 33.600002
+      value: 271.1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[3].x
-      value: 33.600002
+      value: 271.1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[3].y
-      value: 72
+      value: 527.1
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _boundaryConditions.Array.data[0].VoxelData.Density
