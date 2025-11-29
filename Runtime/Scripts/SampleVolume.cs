@@ -10,8 +10,6 @@ using UnityEngine;
 namespace Spellbound.MarchingCubes {
     public class SampleVolume : MonoBehaviour, IVolume {
         [SerializeField] private GameObject _chunkPrefab;
-
-        [SerializeField] private Vector3Int _volumeSizeInChunks = new(3, 1, 3);
         [SerializeField] private VoxelVolumeConfig _config;
         [SerializeField] private Vector2[] _viewDistanceLodRanges;
 
@@ -92,14 +90,14 @@ namespace Spellbound.MarchingCubes {
 
         public IEnumerator Initialize(int chunkSize) {
             var offset = new Vector3Int(
-                _volumeSizeInChunks.x / 2,
-                _volumeSizeInChunks.y / 2,
-                _volumeSizeInChunks.z / 2
+                _config.sizeInChunks.x / 2,
+                _config.sizeInChunks.y / 2,
+                _config.sizeInChunks.z / 2
             );
 
-            for (var x = 0; x < _volumeSizeInChunks.x; x++) {
-                for (var y = 0; y < _volumeSizeInChunks.y; y++) {
-                    for (var z = 0; z < _volumeSizeInChunks.z; z++) {
+            for (var x = 0; x < _config.sizeInChunks.x; x++) {
+                for (var y = 0; y < _config.sizeInChunks.y; y++) {
+                    for (var z = 0; z < _config.sizeInChunks.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
                         var chunk = VoxelVolume.RegisterChunk(chunkCoord);
 
@@ -134,7 +132,7 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(1);
                         }
 
-                        else if (x == _volumeSizeInChunks.x - 1 && boundary.Side == Side.Max) {
+                        else if (x == _config.sizeInChunks.x - 1 && boundary.Side == Side.Max) {
                             slices.Add(chunkSize + 1);
                             slices.Add(chunkSize + 2);
                         }
@@ -147,7 +145,7 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(1);
                         }
 
-                        else if (y == _volumeSizeInChunks.y - 1 && boundary.Side == Side.Max) {
+                        else if (y == _config.sizeInChunks.y - 1 && boundary.Side == Side.Max) {
                             slices.Add(chunkSize + 1);
                             slices.Add(chunkSize + 2);
                         }
@@ -160,7 +158,7 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(1);
                         }
 
-                        else if (z == _volumeSizeInChunks.z - 1 && boundary.Side == Side.Max) {
+                        else if (z == _config.sizeInChunks.z - 1 && boundary.Side == Side.Max) {
                             slices.Add(chunkSize + 1);
                             slices.Add(chunkSize + 2);
                         }
@@ -184,16 +182,16 @@ namespace Spellbound.MarchingCubes {
     
             // Calculate total size in voxels
             Vector3Int sizeInVoxels = new Vector3Int(
-                _volumeSizeInChunks.x * config.ChunkSize,
-                _volumeSizeInChunks.y * config.ChunkSize,
-                _volumeSizeInChunks.z * config.ChunkSize
+                _config.sizeInChunks.x * config.ChunkSize,
+                _config.sizeInChunks.y * config.ChunkSize,
+                _config.sizeInChunks.z * config.ChunkSize
             );
     
             // Calculate center offset (since chunks are centered around origin)
             Vector3Int offset = new Vector3Int(
-                _volumeSizeInChunks.x / 2,
-                _volumeSizeInChunks.y / 2,
-                _volumeSizeInChunks.z / 2
+                _config.sizeInChunks.x / 2,
+                _config.sizeInChunks.y / 2,
+                _config.sizeInChunks.z / 2
             );
     
             Vector3Int centerInVoxels = new Vector3Int(

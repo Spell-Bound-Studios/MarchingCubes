@@ -15,6 +15,7 @@ namespace Spellbound.MarchingCubes {
         public bool isFiniteSize = true;
         public Vector3Int sizeInChunks;
         [SerializeField] private Vector3 volumeSize;
+        public Vector3 VolumeSize => volumeSize;
 
         void OnValidate() {
             ValidateChunkSize();

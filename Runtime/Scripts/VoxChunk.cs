@@ -108,7 +108,7 @@ namespace Spellbound.MarchingCubes {
                 _mcManager.McConfigBlob.Value.DensityThreshold);
 
             _rootNode = new OctreeNode(Vector3Int.zero, _mcManager.McConfigBlob.Value.LevelsOfDetail, this,
-                _chunkManager.VoxelVolume.Transform);
+                _chunkManager);
         }
 
         public bool ApplyVoxelEdits(

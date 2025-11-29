@@ -59,33 +59,7 @@ namespace Spellbound.MarchingCubes {
                     // 5 => chunkCoord + Vector3Int.forward, handled by the default case
                     _ => chunkCoord + Vector3Int.forward
                 };
-
-        public static int GetLod(float distance, Vector2[] lodRanges) {
-            for (var i = 0; i < lodRanges.Length; i++) {
-                if (distance <= lodRanges[i].y)
-                    return i;
-            }
-
-            // If distance is beyond all ranges, return -1
-            // return - 1;
-            return lodRanges.Length - 1;
-        }
-
-        /*
-        private static readonly int2[] CornerPositions = {
-            new(1, 1),
-            new(1, ChunkDataWidthSize - 2),
-            new(ChunkDataWidthSize - 2, 1),
-            new(ChunkDataWidthSize - 2, ChunkDataWidthSize - 2)
-        };
-
-        public static readonly int[] CornerIndices = {
-            Coord2DToIndex(CornerPositions[0].x, CornerPositions[0].y),
-            Coord2DToIndex(CornerPositions[1].x, CornerPositions[1].y),
-            Coord2DToIndex(CornerPositions[2].x, CornerPositions[2].y),
-            Coord2DToIndex(CornerPositions[3].x, CornerPositions[3].y)
-        };
-        */
+        
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IndexToInt3(
