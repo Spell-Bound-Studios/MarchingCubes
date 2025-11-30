@@ -2,31 +2,20 @@
 
 using System;
 using System.Collections.Generic;
-using Spellbound.Core;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public static class TerraformCommands {
-        public static Func<IVolume, List<RawVoxelEdit>> RemoveSphere(
+        public static Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> RemoveSphere(
             Vector3 worldPosition,
             float radius,
             int delta) =>
                 (iVoxelVolume) => {
-                    ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob
-                            .Value;
-
                     // Convert world position to volume-local space
-                    var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
-
-                    // Convert to voxel coordinates
-                    var voxelCenter = new Vector3(
-                        localPos.x / config.Resolution,
-                        localPos.y / config.Resolution,
-                        localPos.z / config.Resolution
-                    );
+                    var voxelCenter = iVoxelVolume.VoxelVolume.WorldToVoxelSpace(worldPosition);
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
-                    var radiusVoxels = radius / config.Resolution;
+                    var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
 
                     var r = Mathf.CeilToInt(radiusVoxels);
                     var radiusSq = radiusVoxels * radiusVoxels;
@@ -63,30 +52,23 @@ namespace Spellbound.MarchingCubes {
                         }
                     }
 
-                    return rawVoxelEdits;
+                    // Create bounds in world space centered on the world position
+                    var worldBounds = new Bounds(worldPosition, Vector3.one * radius * 2f);
+
+                    return (rawVoxelEdits, worldBounds);
                 };
 
-        public static Func<IVolume, List<RawVoxelEdit>> AddSphere(
+        public static Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> AddSphere(
             Vector3 worldPosition,
-            MaterialType addedMaterial,
+            byte addedMaterial,
             float radius,
             int delta) =>
                 (iVoxelVolume) => {
-                    ref var config = ref SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob
-                            .Value;
-
                     // Convert world position to volume-local space
-                    var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
-
-                    // Convert to voxel coordinates
-                    var voxelCenter = new Vector3(
-                        localPos.x / config.Resolution,
-                        localPos.y / config.Resolution,
-                        localPos.z / config.Resolution
-                    );
+                    var voxelCenter = iVoxelVolume.VoxelVolume.WorldToVoxelSpace(worldPosition);
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
-                    var radiusVoxels = radius / config.Resolution;
+                    var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
 
                     var r = Mathf.CeilToInt(radiusVoxels);
                     var radiusSq = radiusVoxels * radiusVoxels;
@@ -121,7 +103,10 @@ namespace Spellbound.MarchingCubes {
                         }
                     }
 
-                    return rawVoxelEdits;
+                    // Create bounds in world space centered on the world position
+                    var worldBounds = new Bounds(worldPosition, Vector3.one * radius * 2f);
+
+                    return (rawVoxelEdits, worldBounds);
                 };
     }
 }
