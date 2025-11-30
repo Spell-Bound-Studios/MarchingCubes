@@ -88,7 +88,7 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
-
+            
             var terraformAction = TerraformCommands.AddSphere(position,
                 3,
                 radius,

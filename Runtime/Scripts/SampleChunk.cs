@@ -15,7 +15,6 @@ namespace Spellbound.MarchingCubes {
 
         public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
             if (VoxelChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds)) {
-                //play sounds
                 VoxelChunk.ValidateOctreeEdits(editBounds);
             }
         }

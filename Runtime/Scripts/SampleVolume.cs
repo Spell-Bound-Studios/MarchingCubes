@@ -63,7 +63,7 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref VoxelVolume.ConfigBlob.Value;
             GenerateSimpleData();
             StartCoroutine(Initialize(config.ChunkSize));
-            StartCoroutine(VoxelVolume.ValidateChunkLods());
+            VoxelVolume.IsReadyToValidate = true;
         }
 
         private void OnDestroy() {

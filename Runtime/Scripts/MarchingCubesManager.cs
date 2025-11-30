@@ -38,6 +38,27 @@ namespace Spellbound.MarchingCubes {
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeVoxelMaterial();
+            ValidateAllVolumesLodsAsync();
+        }
+        
+        public async void ValidateAllVolumesLodsAsync() {
+            try {
+                while (true) {
+                    foreach (var volume in _voxelVolumes) {
+                        if (volume?.VoxelVolume == null)
+                            continue;
+                        if (!volume.VoxelVolume.IsReadyToValidate)
+                            continue;
+                    
+                        await volume.VoxelVolume.ValidateChunkLodsAsync();
+                    }
+            
+                    await Awaitable.NextFrameAsync();
+                }
+            }
+            finally {
+                Debug.Log("ValidateAllVolumesLodsAsync stopped");
+            }
         }
 
         private void InitializeVoxelMaterial() {
@@ -85,13 +106,9 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void RegisterVoxelVolume(IVolume volume, int chunkSize) {
-            Debug.Log(
-                $"Registering volume with chunkSize={chunkSize}, expected data size={(chunkSize + 3) * (chunkSize + 3) * (chunkSize + 3)}");
             _voxelVolumes.Add(volume);
-
             if (!_denseVoxelDataDict.ContainsKey(chunkSize)) {
                 var denseData = new DenseVoxelData(chunkSize);
-                Debug.Log($"Created DenseVoxelData with array length={denseData.DenseVoxelArray.Length}");
                 _denseVoxelDataDict.Add(chunkSize, denseData);
             }
         }
@@ -133,6 +150,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ExecuteTerraform(
+            
             Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
             HashSet<byte> removableMatTypes = null,
             IVolume targetVolume = null) {
@@ -145,10 +163,10 @@ namespace Spellbound.MarchingCubes {
 
             foreach (var voxelVolume in _voxelVolumes) {
                 var result = terraformAction(voxelVolume);
-
+                
                 if (!voxelVolume.VoxelVolume.IntersectsVolume(result.bounds))
                     continue;
-
+                
                 DistributeVoxelEdits(voxelVolume, result.edits, removableMatTypes);
             }
         }

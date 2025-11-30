@@ -17,8 +17,11 @@ namespace Spellbound.MarchingCubes {
         private Dictionary<Vector3Int, IChunk> _chunkDict = new();
         private GameObject _chunkPrefab;
         private bool _isPrimaryTerrain = false;
+
         private BoundsInt _bounds;
         public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
+        
+        public bool IsReadyToValidate { get; set; }
 
         public Transform Transform => _owner.transform;
         public Dictionary<Vector3Int, IChunk> ChunkDict => _chunkDict;
@@ -33,41 +36,12 @@ namespace Spellbound.MarchingCubes {
             set => _bounds = value;
         }
 
-        public bool IntersectsVolume(Bounds worldBounds) {
+        public bool IntersectsVolume(Bounds voxelBounds) {
             if (IsPrimaryTerrain)
                 return true;
 
-            var resolution = _ownerAsIVolume.Config.resolution;
-
-            // Convert the 8 corners of the world bounds into local voxel space
-            var worldCorners = new Vector3[8];
-            worldCorners[0] = worldBounds.min;
-            worldCorners[1] = new Vector3(worldBounds.min.x, worldBounds.min.y, worldBounds.max.z);
-            worldCorners[2] = new Vector3(worldBounds.min.x, worldBounds.max.y, worldBounds.min.z);
-            worldCorners[3] = new Vector3(worldBounds.min.x, worldBounds.max.y, worldBounds.max.z);
-            worldCorners[4] = new Vector3(worldBounds.max.x, worldBounds.min.y, worldBounds.min.z);
-            worldCorners[5] = new Vector3(worldBounds.max.x, worldBounds.min.y, worldBounds.max.z);
-            worldCorners[6] = new Vector3(worldBounds.max.x, worldBounds.max.y, worldBounds.min.z);
-            worldCorners[7] = worldBounds.max;
-
-            // Transform all corners to local voxel space
-            var localMin = Vector3.positiveInfinity;
-            var localMax = Vector3.negativeInfinity;
-
-            for (var i = 0; i < 8; i++) {
-                var localCorner = Transform.InverseTransformPoint(worldCorners[i]) / resolution;
-                localMin = Vector3.Min(localMin, localCorner);
-                localMax = Vector3.Max(localMax, localCorner);
-            }
-
-            // Create bounds in local voxel space
-            var localWorldBounds = new Bounds();
-            localWorldBounds.SetMinMax(localMin, localMax);
-
-            // Check intersection with volume bounds
             var volumeBounds = new Bounds(_bounds.center, _bounds.size);
-
-            return volumeBounds.Intersects(localWorldBounds);
+            return volumeBounds.Intersects(voxelBounds);
         }
 
         public VoxVolume(MonoBehaviour owner, IVolume ownerAsIVolume, GameObject chunkPrefab) {
@@ -83,9 +57,9 @@ namespace Spellbound.MarchingCubes {
             var localPos = Transform.InverseTransformPoint(worldPosition);
 
             return new Vector3Int(
-                Mathf.FloorToInt(localPos.x / config.Resolution) - config.Offset.x,
-                Mathf.FloorToInt(localPos.y / config.Resolution) - config.Offset.y,
-                Mathf.FloorToInt(localPos.z / config.Resolution) - config.Offset.z
+                Mathf.RoundToInt(localPos.x / config.Resolution) - config.Offset.x,
+                Mathf.RoundToInt(localPos.y / config.Resolution) - config.Offset.y,
+                Mathf.RoundToInt(localPos.z / config.Resolution) - config.Offset.z
             );
         }
 
@@ -113,27 +87,23 @@ namespace Spellbound.MarchingCubes {
             );
         }
 
-        public IEnumerator ValidateChunkLods() {
-            while (true) {
-                var chunkList = new List<Vector3Int>(_chunkDict.Keys.ToList());
+        public async Awaitable ValidateChunkLodsAsync() {
+            var chunkList = new List<Vector3Int>(_chunkDict.Keys.ToList());
 
-                foreach (var coord in chunkList) {
-                    if (!_chunkDict.TryGetValue(coord, out var chunk))
-                        continue;
+            foreach (var coord in chunkList) {
+                if (!_chunkDict.TryGetValue(coord, out var chunk))
+                    continue;
 
-                    if (!chunk.VoxelChunk.HasVoxelData())
-                        continue;
+                if (!chunk.VoxelChunk.HasVoxelData())
+                    continue;
 
-                    if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
-                        continue;
+                if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
+                    continue;
 
-                    var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIVolume.LodTarget.position);
-                    chunk.VoxelChunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
+                var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIVolume.LodTarget.position);
+                chunk.VoxelChunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
 
-                    yield return null;
-                }
-
-                yield return null;
+                await Awaitable.NextFrameAsync();
             }
         }
 

@@ -53,9 +53,9 @@ namespace Spellbound.MarchingCubes {
                     }
 
                     // Create bounds in world space centered on the world position
-                    var worldBounds = new Bounds(worldPosition, Vector3.one * radius * 2f);
+                    var voxelBounds = new Bounds(voxelCenter, Vector3.one * radiusVoxels * 2f);
 
-                    return (rawVoxelEdits, worldBounds);
+                    return (rawVoxelEdits, voxelBounds);
                 };
 
         public static Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> AddSphere(
@@ -104,9 +104,9 @@ namespace Spellbound.MarchingCubes {
                     }
 
                     // Create bounds in world space centered on the world position
-                    var worldBounds = new Bounds(worldPosition, Vector3.one * radius * 2f);
-
-                    return (rawVoxelEdits, worldBounds);
+                    var voxelBounds = new Bounds(voxelCenter, Vector3.one * radiusVoxels * 2f);
+                    
+                    return (rawVoxelEdits, voxelBounds);
                 };
     }
 }

@@ -17,7 +17,7 @@ MonoBehaviour:
   levelsOfDetail: 4
   maxChunkSize: 128
   chunkSize: 128
-  resolution: 1
+  resolution: 0.5
   isFiniteSize: 1
   sizeInChunks: {x: 1, y: 1, z: 1}
-  volumeSize: {x: 128, y: 128, z: 128}
+  volumeSize: {x: 64, y: 64, z: 64}
