@@ -1,6 +1,7 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -27,11 +28,11 @@ namespace Spellbound.MarchingCubes {
             return runtimeList;
         }
         
-        public VoxelOverrides BuildChunkOverrides(Vector3Int chunkCoord, Vector3Int sizeInChunks, int chunkSize) {
+        public VoxelOverrides BuildChunkOverrides(Vector3Int chunkCoord, BlobAssetReference<VolumeConfigBlobAsset> configBlob) {
             var overrides = new VoxelOverrides();
     
             // Convert back to x,y,z indices for boundary logic
-            var offset = new Vector3Int(sizeInChunks.x / 2, sizeInChunks.y / 2, sizeInChunks.z / 2);
+            var offset = new Vector3Int(configBlob.Value.SizeInChunks.x / 2, configBlob.Value.SizeInChunks.y / 2, configBlob.Value.SizeInChunks.z / 2);
             var indices = chunkCoord + offset;
     
             foreach (var boundary in GetBoundaryOverrides()) {
@@ -43,9 +44,9 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(0);
                             slices.Add(1);
                         }
-                        else if (indices.x == sizeInChunks.x - 1 && boundary.Side == Side.Max) {
-                            slices.Add(chunkSize + 1);
-                            slices.Add(chunkSize + 2);
+                        else if (indices.x == configBlob.Value.SizeInChunks.x - 1 && boundary.Side == Side.Max) {
+                            slices.Add(configBlob.Value.ChunkSize + 1);
+                            slices.Add(configBlob.Value.ChunkSize + 2);
                         }
                         break;
                 
@@ -54,9 +55,9 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(0);
                             slices.Add(1);
                         }
-                        else if (indices.y == sizeInChunks.y - 1 && boundary.Side == Side.Max) {
-                            slices.Add(chunkSize + 1);
-                            slices.Add(chunkSize + 2);
+                        else if (indices.y == configBlob.Value.SizeInChunks.y - 1 && boundary.Side == Side.Max) {
+                            slices.Add(configBlob.Value.ChunkSize + 1);
+                            slices.Add(configBlob.Value.ChunkSize + 2);
                         }
                         break;
                 
@@ -65,9 +66,9 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(0);
                             slices.Add(1);
                         }
-                        else if (indices.z == sizeInChunks.z - 1 && boundary.Side == Side.Max) {
-                            slices.Add(chunkSize + 1);
-                            slices.Add(chunkSize + 2);
+                        else if (indices.z == configBlob.Value.SizeInChunks.z - 1 && boundary.Side == Side.Max) {
+                            slices.Add(configBlob.Value.ChunkSize + 1);
+                            slices.Add(configBlob.Value.ChunkSize + 2);
                         }
                         break;
                 }

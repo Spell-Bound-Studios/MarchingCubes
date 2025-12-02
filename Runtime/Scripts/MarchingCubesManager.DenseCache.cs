@@ -22,7 +22,7 @@ namespace Spellbound.MarchingCubes {
                 return new DenseVoxelData().DenseVoxelArray;
             }
 
-            ref var config = ref chunk.ParentVolume.VoxelVolume.ConfigBlob.Value;
+            ref var config = ref chunk.ParentVolume.ConfigBlob.Value;
 
             if (denseVoxelData.IsArrayInUse) {
                 if (chunk != denseVoxelData.CurrentChunk) {
@@ -52,7 +52,7 @@ namespace Spellbound.MarchingCubes {
             denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, config.DensityThreshold);
 
             var unpackJob = new SparseToDenseVoxelDataJob {
-                ConfigBlob = chunk.ParentVolume.VoxelVolume.ConfigBlob,
+                ConfigBlob = chunk.ParentVolume.ConfigBlob,
                 Voxels = denseVoxelData.DenseVoxelArray,
                 SparseVoxels = sparseData,
                 DensityRange = denseVoxelData.DensityRange

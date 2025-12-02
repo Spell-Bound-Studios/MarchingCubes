@@ -11,14 +11,13 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Spellbound.MarchingCubes {
-    public class VoxVolume : IDisposable {
+    public class VolumeCoreLogic : IDisposable {
         private readonly MonoBehaviour _owner;
         private readonly IVolume _ownerAsIVolume;
         private readonly MarchingCubesManager _mcManager;
         private Dictionary<Vector3Int, IChunk> _chunkDict = new();
         private GameObject _chunkPrefab;
         private bool _isPrimaryTerrain = false;
-
         private BoundsInt _bounds;
         public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
         
@@ -43,12 +42,13 @@ namespace Spellbound.MarchingCubes {
             return volumeBounds.Intersects(voxelBounds);
         }
 
-        public VoxVolume(MonoBehaviour owner, IVolume ownerAsIVolume, GameObject chunkPrefab) {
+        public VolumeCoreLogic(MonoBehaviour owner, IVolume ownerAsIVolume, GameObject chunkPrefab, VoxelVolumeConfig config) {
             _owner = owner;
             _ownerAsIVolume = ownerAsIVolume;
-            _chunkPrefab = chunkPrefab;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
-            ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(_ownerAsIVolume.Config);
+            _chunkPrefab = chunkPrefab;
+
+            ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(config);
             _bounds = CalculateVolumeBounds();
         }
 
@@ -117,7 +117,7 @@ namespace Spellbound.MarchingCubes {
         private IChunk CreateChunk(Vector3Int chunkCoord) {
             ref var config = ref ConfigBlob.Value;
 
-            var localChunkPos = (Vector3)chunkCoord * (config.ChunkSize * _ownerAsIVolume.Config.resolution);
+            var localChunkPos = (Vector3)chunkCoord * (config.ChunkSize * config.Resolution);
             var worldChunkPos = Transform.TransformPoint(localChunkPos);
 
             var chunkObj = Object.Instantiate(
@@ -195,34 +195,6 @@ namespace Spellbound.MarchingCubes {
                 sizeInVoxels.z
             );
         }
-        
-        public IEnumerator InitializeChunks(
-            Action<Vector3Int, NativeArray<VoxelData>> generateDenseData,
-            Func<Vector3Int, VoxelOverrides> buildOverridesFunc = null)
-        {
-            var size = ConfigBlob.Value.SizeInChunks;
-            var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
-            var denseVoxels = new NativeArray<VoxelData>(ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
-
-            for (var x = 0; x < size.x; x++) {
-                for (var y = 0; y < size.y; y++) {
-                    for (var z = 0; z < size.z; z++) {
-                        var chunkCoord = new Vector3Int(x, y, z) - offset;
-                        var chunk = RegisterChunk(chunkCoord);
-                        generateDenseData(chunkCoord, denseVoxels);
-                        
-                        if (buildOverridesFunc != null) {
-                            chunk.VoxelChunk.SetOverrides(buildOverridesFunc(chunkCoord));
-                        }
-                        
-                        chunk.InitializeChunk(denseVoxels);
-                        yield return null;
-                    }
-                }
-            }
-            denseVoxels.Dispose();
-        }
-
         public void Dispose() {
             if (ConfigBlob.IsCreated)
                 ConfigBlob.Dispose();

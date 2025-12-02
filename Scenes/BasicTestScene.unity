@@ -497,6 +497,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 788305996941b9a4c963937b4423bf31, type: 2}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
+      propertyPath: _dataFactory
+      value: 
+      objectReference: {fileID: 11400000, guid: 927cd5ce8abf9ed49afeefed410b515c, type: 2}
+    - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _boundaryOverrides
       value: 
       objectReference: {fileID: 11400000, guid: 418912af9029cc44ab70960ba4cd7239, type: 2}
@@ -530,7 +534,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.size
-      value: 1
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _boundaryOverrides.Array.data[0].axis
@@ -566,31 +570,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[0].y
-      value: 16
+      value: 6.4
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[1].x
-      value: 79.1
+      value: 6.4
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[1].y
-      value: 143.1
+      value: 19.2
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[2].x
-      value: 143.1
+      value: 19.2
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[2].y
-      value: 271.1
+      value: 44.800003
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[3].x
-      value: 271.1
+      value: 44.800003
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _viewDistanceLodRanges.Array.data[3].y
-      value: 527.1
+      value: 96
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _boundaryConditions.Array.data[0].VoxelData.Density
@@ -845,6 +849,10 @@ PrefabInstance:
       propertyPath: _config
       value: 
       objectReference: {fileID: 11400000, guid: 70c2bce39f6d1664e83d1a014775da2a, type: 2}
+    - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
+      propertyPath: _dataFactory
+      value: 
+      objectReference: {fileID: 11400000, guid: 927cd5ce8abf9ed49afeefed410b515c, type: 2}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: _boundaryOverrides
       value: 

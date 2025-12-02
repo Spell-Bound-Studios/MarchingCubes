@@ -23,7 +23,7 @@ namespace Spellbound.MarchingCubes {
 
         private void OnDrawGizmos() {
             var worldSize = (Vector3)VoxelChunk.Bounds.size *
-                            VoxelChunk.ParentVolume.VoxelVolume.ConfigBlob.Value.Resolution;
+                            VoxelChunk.ParentVolume.ConfigBlob.Value.Resolution;
             var localOffset = worldSize * 0.5f;
             var worldCenter = transform.position + transform.TransformDirection(localOffset);
             Gizmos.DrawWireCube(worldCenter, worldSize);
