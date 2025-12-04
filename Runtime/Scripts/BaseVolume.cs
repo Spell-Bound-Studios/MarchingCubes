@@ -68,14 +68,14 @@ namespace Spellbound.MarchingCubes {
                 if (!_chunkDict.TryGetValue(coord, out var chunk))
                     continue;
 
-                if (!chunk.VoxelChunk.HasVoxelData())
+                if (!chunk.HasVoxelData())
                     continue;
 
                 if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
                     continue;
 
                 var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIVolume.LodTarget.position);
-                chunk.VoxelChunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
+                chunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
 
                 await Awaitable.NextFrameAsync();
             }
@@ -108,14 +108,14 @@ namespace Spellbound.MarchingCubes {
                 return null;
             }
 
-            chunk.VoxelChunk.SetCoordAndFields(chunkCoord);
+            chunk.SetCoordAndFields(chunkCoord);
 
             return chunk;
         }
 
         public void UpdateVolumeOrigin() {
             foreach (var chunk in _chunkDict.Values) 
-                chunk.VoxelChunk.OnVolumeMovement();
+                chunk.OnVolumeMovement();
         }
 
         public static Vector2[] ValidateLodRanges(Vector2[] lodRanges, VoxelVolumeConfig config) {

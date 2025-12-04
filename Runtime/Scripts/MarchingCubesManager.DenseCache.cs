@@ -13,7 +13,7 @@ namespace Spellbound.MarchingCubes {
 
         public NativeArray<VoxelData> GetOrUnpackVoxelArray(
             int dataSizeKey,
-            VoxChunk chunk,
+            BaseChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
                 Debug.LogError(
@@ -112,10 +112,10 @@ namespace Spellbound.MarchingCubes {
             public NativeArray<DensityRange> DensityRange;
             public Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
             public bool IsArrayInUse;
-            public VoxChunk CurrentChunk;
+            public BaseChunk CurrentChunk;
 
             public DenseVoxelData(
-                int chunkSize, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
+                int chunkSize, BaseChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
                 var cs = chunkSize + 3;
                 DenseVoxelArray = new NativeArray<VoxelData>(cs * cs * cs, allocator);
                 DensityRange = new NativeArray<DensityRange>(1, allocator);

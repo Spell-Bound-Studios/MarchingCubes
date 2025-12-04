@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
         private Vector3Int _localPosition; // Chunk-local voxel position
         private readonly int _lod;
         private BoundsInt _boundsVoxel; // Chunk-local voxel space bounds
-        private readonly VoxChunk _chunk;
+        private readonly BaseChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
         private readonly IVolume _parentVolume;
 
@@ -36,7 +36,7 @@ namespace Spellbound.MarchingCubes {
 
         private bool IsLeaf => _children == null;
 
-        public OctreeNode(Vector3Int localPosition, int lod, VoxChunk chunk, IVolume parentVolume) {
+        public OctreeNode(Vector3Int localPosition, int lod, BaseChunk chunk, IVolume parentVolume) {
             _parentVolume = parentVolume;
             _localPosition = localPosition;
             _lod = lod;

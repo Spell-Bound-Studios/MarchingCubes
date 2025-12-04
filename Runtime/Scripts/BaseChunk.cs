@@ -8,16 +8,16 @@ using Unity.Jobs;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public class VoxChunk : IDisposable {
+    public class BaseChunk : IDisposable {
         private Vector3Int _chunkCoord;
         private BoundsInt _bounds;
         private NativeList<SparseVoxelData> _sparseVoxels;
         private Dictionary<int, VoxelEdit> _voxelEdits;
         private OctreeNode _rootNode;
         private DensityRange _densityRange;
-        private MarchingCubesManager _mcManager;
+        private readonly MarchingCubesManager _mcManager;
         private IVolume _parentVolume;
-        private MonoBehaviour _owner;
+        private readonly MonoBehaviour _owner;
         private VoxelOverrides _voxelOverrides;
 
         public Vector3Int ChunkCoord => _chunkCoord;
@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
 
         public IVolume ParentVolume => _parentVolume;
 
-        public VoxChunk(MonoBehaviour owner) {
+        public BaseChunk(MonoBehaviour owner) {
             _owner = owner;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             _voxelOverrides = new VoxelOverrides();
@@ -254,7 +254,7 @@ namespace Spellbound.MarchingCubes {
                 return;
 
             var neighborLocalPos = worldVoxelPos - neighborCoord * config.ChunkSize;
-            neighborChunk.VoxelChunk.BroadcastNewLeafAcrossChunks(newLeaf, neighborLocalPos, index);
+            neighborChunk.BroadcastNewLeafAcrossChunks(newLeaf, neighborLocalPos, index);
         }
 
         public VoxelData GetVoxelData(int index) {
@@ -298,24 +298,6 @@ namespace Spellbound.MarchingCubes {
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
             _mcManager.ReleaseVoxelArray(ParentVolume.ConfigBlob.Value.ChunkSize);
-        }
-        
-        // Add/update an override at runtime
-        public void AddPointOverride(Vector3Int position, VoxelData voxelData) {
-            _voxelOverrides.AddPointOverride(position, voxelData);
-            // Trigger re-validation/meshing as needed
-        }
-
-            // Add a plane override at runtime
-        public void AddPlaneOverride(Axis axis, int slice, VoxelData voxelData) {
-            _voxelOverrides.AddPlaneOverride(axis, slice, voxelData);
-            // Trigger re-validation/meshing
-        }
-
-            // Clear all overrides
-        public void ClearOverrides() {
-            _voxelOverrides.Clear();
-            // Potentially re-mesh without overrides
         }
 
         public void Dispose() {

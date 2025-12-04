@@ -18,4 +18,4 @@ MonoBehaviour:
   offset: {x: 0, y: 0, z: 0}
   sdfGradientSteepness: 32
   materialIndex: 2
-  invertShape: 1
+  invertShape: 0

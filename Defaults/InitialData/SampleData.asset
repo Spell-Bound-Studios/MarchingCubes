@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24cf1f274a851c949930b71f1eb56fef, type: 3}
-  m_Name: SmallSphere
+  m_Name: SampleData
   m_EditorClassIdentifier: 
-  shape: 4
-  size: 7
+  shape: 3
+  size: 15
   normalizedSize: 0
   offset: {x: 0, y: 0, z: 0}
-  sdfGradientSteepness: 2
+  sdfGradientSteepness: 32
   materialIndex: 2
   invertShape: 0

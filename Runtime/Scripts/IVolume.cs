@@ -15,6 +15,8 @@ namespace Spellbound.MarchingCubes {
         
         bool IsPrimaryTerrain  { get; set; }
         
+        
+        // Default Implementations
         Transform VolumeTransform => BaseVolume.Transform;
         
         BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob => BaseVolume.ConfigBlob;

@@ -64,8 +64,8 @@ namespace Spellbound.MarchingCubes {
         }
         
         private float NoisySphereSDF(Vector3 point, Vector3 center, float radius) {
-            var noiseScale = 1.5f;
-            var noiseAmplitude = 8;
+            var noiseScale = 3f;
+            var noiseAmplitude = radius / 5;
             Vector3 direction = point - center;
             float distance = direction.magnitude;
             Vector3 normalized = distance > 0.001f ? direction / distance : Vector3.up;

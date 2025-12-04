@@ -104,7 +104,7 @@ namespace Spellbound.MarchingCubes {
                         if (boundaryOverrides != null) {
                             var overrides = boundaryOverrides.BuildChunkOverrides(
                                 chunkCoord, _baseVolume.ConfigBlob);
-                            chunk.VoxelChunk.SetOverrides(overrides);
+                            chunk.SetOverrides(overrides);
                         }
                         chunk.InitializeChunk(denseVoxels);
                         yield return null;
