@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
         private Vector3Int _localPosition; // Chunk-local voxel position
         private readonly int _lod;
         private BoundsInt _boundsVoxel; // Chunk-local voxel space bounds
-        private readonly VoxChunk _chunk;
+        private readonly BaseChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
         private readonly IVolume _parentVolume;
 
@@ -36,14 +36,14 @@ namespace Spellbound.MarchingCubes {
 
         private bool IsLeaf => _children == null;
 
-        public OctreeNode(Vector3Int localPosition, int lod, VoxChunk chunk, IVolume parentVolume) {
+        public OctreeNode(Vector3Int localPosition, int lod, BaseChunk chunk, IVolume parentVolume) {
             _parentVolume = parentVolume;
             _localPosition = localPosition;
             _lod = lod;
             _chunk = chunk;
 
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
-            var octreeSizeVoxels = 3 + (_parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
+            var octreeSizeVoxels = 3 + (_parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
         }
 
@@ -90,7 +90,7 @@ namespace Spellbound.MarchingCubes {
 
             _children = new OctreeNode[8];
             var childLod = _lod - 1;
-            var childSize = _parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
+            var childSize = _parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
 
             for (var i = 0; i < 8; i++) {
                 var offset = new Vector3Int(
@@ -118,7 +118,7 @@ namespace Spellbound.MarchingCubes {
         private void SetMaterialOrigin() {
             var meshRenderer = _leafGo.GetComponent<MeshRenderer>();
             var materialPropertyBlock = new MaterialPropertyBlock();
-            materialPropertyBlock.SetMatrix("_WorldToLocal", _parentVolume.VoxelVolume.Transform.worldToLocalMatrix);
+            materialPropertyBlock.SetMatrix("_WorldToLocal", _parentVolume.VolumeTransform.worldToLocalMatrix);
             meshRenderer.SetPropertyBlock(materialPropertyBlock);
 
             if (_transitionGo != null) {
@@ -128,7 +128,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            var targetLod = GetLodRange(Center, playerPosition, _parentVolume.VoxelVolume.ConfigBlob.Value.Resolution);
+            var targetLod = GetLodRange(Center, playerPosition, _parentVolume.ConfigBlob.Value.Resolution);
 
             if (_chunk.DensityRange.IsSkippable()) return;
 
@@ -212,7 +212,7 @@ namespace Spellbound.MarchingCubes {
         private void MarchAndMesh(NativeArray<VoxelData> voxelArray) {
             var marchingCubeJob = new MarchingCubeJob {
                 TablesBlob = _mcManager.McTablesBlob,
-                ConfigBlob = _parentVolume.VoxelVolume.ConfigBlob,
+                ConfigBlob = _parentVolume.ConfigBlob,
                 VoxelArray = voxelArray,
 
                 Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -228,7 +228,7 @@ namespace Spellbound.MarchingCubes {
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
                     TablesBlob = _mcManager.McTablesBlob,
-                    ConfigBlob = _parentVolume.VoxelVolume.ConfigBlob,
+                    ConfigBlob = _parentVolume.ConfigBlob,
                     VoxelArray = voxelArray,
 
                     TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -271,7 +271,7 @@ namespace Spellbound.MarchingCubes {
             _mesh = new Mesh();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
 
-            _leafGo.name = $"LeafSize {_parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
+            _leafGo.name = $"LeafSize {_parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
         }
 

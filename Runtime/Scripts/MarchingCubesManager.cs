@@ -45,12 +45,8 @@ namespace Spellbound.MarchingCubes {
             try {
                 while (true) {
                     foreach (var volume in _voxelVolumes) {
-                        if (volume?.VoxelVolume == null)
-                            continue;
-                        if (!volume.VoxelVolume.IsReadyToValidate)
-                            continue;
-                    
-                        await volume.VoxelVolume.ValidateChunkLodsAsync();
+                        
+                        await volume.ValidateChunkLods();
                     }
             
                     await Awaitable.NextFrameAsync();
@@ -105,8 +101,9 @@ namespace Spellbound.MarchingCubes {
             foreach (var kvp in _denseVoxelDataDict) kvp.Value.Dispose();
         }
 
-        public void RegisterVoxelVolume(IVolume volume, int chunkSize) {
+        public void RegisterVoxelVolume(IVolume volume) {
             _voxelVolumes.Add(volume);
+            var chunkSize = volume.ConfigBlob.Value.ChunkSize;
             if (!_denseVoxelDataDict.ContainsKey(chunkSize)) {
                 var denseData = new DenseVoxelData(chunkSize);
                 _denseVoxelDataDict.Add(chunkSize, denseData);
@@ -161,13 +158,15 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            foreach (var voxelVolume in _voxelVolumes) {
-                var result = terraformAction(voxelVolume);
+            foreach (var iVolume in _voxelVolumes) {
+                var result = terraformAction(iVolume);
                 
-                if (!voxelVolume.VoxelVolume.IntersectsVolume(result.bounds))
+                
+                if (!iVolume.IntersectsVolume(result.bounds))
                     continue;
+                    
                 
-                DistributeVoxelEdits(voxelVolume, result.edits, removableMatTypes);
+                DistributeVoxelEdits(iVolume, result.edits, removableMatTypes);
             }
         }
 
@@ -180,21 +179,21 @@ namespace Spellbound.MarchingCubes {
             IVolume volume, List<RawVoxelEdit> rawVoxelEdits, HashSet<byte> removableMatTypes = null) {
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
 
-            ref var config = ref volume.VoxelVolume.ConfigBlob.Value;
+            ref var config = ref volume.ConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = volume.VoxelVolume.GetCoordByVoxelPosition(rawEdit.WorldPosition);
+                var centralCoord = volume.GetCoordByVoxelPosition(rawEdit.WorldPosition);
                 var centralLocalPos = rawEdit.WorldPosition - centralCoord * config.ChunkSize;
 
                 var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
                     config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
-                var chunk = volume.VoxelVolume.GetChunkByCoord(centralCoord);
+                var chunk = volume.GetChunkByCoord(centralCoord);
 
                 if (chunk == null)
                     continue;
 
-                if (!_denseVoxelDataDict.TryGetValue(volume.VoxelVolume.ConfigBlob.Value.ChunkSize,
+                if (!_denseVoxelDataDict.TryGetValue(volume.ConfigBlob.Value.ChunkSize,
                         out var denseVoxelData))
                     return;
 
@@ -203,7 +202,7 @@ namespace Spellbound.MarchingCubes {
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
 
-                var existingVoxel = chunk.VoxelChunk.GetVoxelData(index);
+                var existingVoxel = chunk.GetVoxelData(index);
 
                 if (rawEdit.DensityChange < 0 && removableMatTypes != null &&
                     !removableMatTypes.Contains(existingVoxel.MaterialIndex)) continue;
@@ -237,7 +236,7 @@ namespace Spellbound.MarchingCubes {
             }
 
             foreach (var kvp in editsByChunkCoord) {
-                var chunk = volume.VoxelVolume.GetChunkByCoord(kvp.Key);
+                var chunk = volume.GetChunkByCoord(kvp.Key);
 
                 if (chunk == null)
                     continue;
@@ -248,19 +247,19 @@ namespace Spellbound.MarchingCubes {
 
         public VoxelData QueryVoxel(Vector3 position) {
             foreach (var voxelVolume in _voxelVolumes) {
-                if (!voxelVolume.VoxelVolume.IsPrimaryTerrain)
+                if (!voxelVolume.IsPrimaryTerrain)
                     continue;
 
-                var chunk = voxelVolume.VoxelVolume.GetChunkByWorldPosition(position);
+                var chunk = voxelVolume.GetChunkByWorldPosition(position);
 
                 if (chunk == null)
                     continue;
 
-                if (!chunk.VoxelChunk.HasVoxelData())
+                if (!chunk.HasVoxelData())
                     continue;
 
-                var voxelPosition = voxelVolume.VoxelVolume.WorldToVoxelSpace(position);
-                var voxel = chunk.VoxelChunk.GetVoxelDataFromVoxelPosition(voxelPosition);
+                var voxelPosition = voxelVolume.WorldToVoxelSpace(position);
+                var voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
 
                 return voxel;
             }

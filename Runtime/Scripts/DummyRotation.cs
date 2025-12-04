@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public class DummyRotation : MonoBehaviour {
+        [SerializeField] private Vector3 rotaxis = Vector3.up;
         [SerializeField] private float rotspeed = 50f;
-        private void Update() => transform.Rotate(Vector3.up * rotspeed * Time.deltaTime);
+        private void Update() => transform.Rotate(rotaxis * rotspeed * Time.deltaTime);
     }
 }

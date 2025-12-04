@@ -12,10 +12,10 @@ namespace Spellbound.MarchingCubes {
             int delta) =>
                 (iVoxelVolume) => {
                     // Convert world position to volume-local space
-                    var voxelCenter = iVoxelVolume.VoxelVolume.WorldToVoxelSpace(worldPosition);
+                    var voxelCenter = iVoxelVolume.WorldToVoxelSpace(worldPosition);
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
-                    var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
+                    var radiusVoxels = radius / iVoxelVolume.ConfigBlob.Value.Resolution;
 
                     var r = Mathf.CeilToInt(radiusVoxels);
                     var radiusSq = radiusVoxels * radiusVoxels;
@@ -65,10 +65,10 @@ namespace Spellbound.MarchingCubes {
             int delta) =>
                 (iVoxelVolume) => {
                     // Convert world position to volume-local space
-                    var voxelCenter = iVoxelVolume.VoxelVolume.WorldToVoxelSpace(worldPosition);
+                    var voxelCenter = iVoxelVolume.WorldToVoxelSpace(worldPosition);
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
-                    var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
+                    var radiusVoxels = radius / iVoxelVolume.ConfigBlob.Value.Resolution;
 
                     var r = Mathf.CeilToInt(radiusVoxels);
                     var radiusSq = radiusVoxels * radiusVoxels;

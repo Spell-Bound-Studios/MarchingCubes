@@ -1,7 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Spellbound.Core;
@@ -10,46 +9,21 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Spellbound.MarchingCubes {
-    public class VoxVolume : IDisposable {
+    public class BaseVolume : IDisposable {
         private readonly MonoBehaviour _owner;
         private readonly IVolume _ownerAsIVolume;
-        private readonly MarchingCubesManager _mcManager;
         private Dictionary<Vector3Int, IChunk> _chunkDict = new();
-        private GameObject _chunkPrefab;
-        private bool _isPrimaryTerrain = false;
-
-        private BoundsInt _bounds;
+        private Bounds _bounds;
         public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
         
-        public bool IsReadyToValidate { get; set; }
-
         public Transform Transform => _owner.transform;
         public Dictionary<Vector3Int, IChunk> ChunkDict => _chunkDict;
 
-        public bool IsPrimaryTerrain {
-            get => _isPrimaryTerrain;
-            set => _isPrimaryTerrain = value;
-        }
-
-        public BoundsInt Bounds {
-            get => _bounds;
-            set => _bounds = value;
-        }
-
-        public bool IntersectsVolume(Bounds voxelBounds) {
-            if (IsPrimaryTerrain)
-                return true;
-
-            var volumeBounds = new Bounds(_bounds.center, _bounds.size);
-            return volumeBounds.Intersects(voxelBounds);
-        }
-
-        public VoxVolume(MonoBehaviour owner, IVolume ownerAsIVolume, GameObject chunkPrefab) {
+        public BaseVolume(MonoBehaviour owner, IVolume ownerAsIVolume, VoxelVolumeConfig config) {
             _owner = owner;
             _ownerAsIVolume = ownerAsIVolume;
-            _chunkPrefab = chunkPrefab;
-            _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
-            ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(_ownerAsIVolume.Config);
+            ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(config);
+            _bounds = CalculateVolumeBounds();
         }
 
         public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
@@ -94,48 +68,54 @@ namespace Spellbound.MarchingCubes {
                 if (!_chunkDict.TryGetValue(coord, out var chunk))
                     continue;
 
-                if (!chunk.VoxelChunk.HasVoxelData())
+                if (!chunk.HasVoxelData())
                     continue;
 
                 if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
                     continue;
 
                 var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIVolume.LodTarget.position);
-                chunk.VoxelChunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
+                chunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
 
                 await Awaitable.NextFrameAsync();
             }
         }
 
-        public IChunk RegisterChunk(Vector3Int chunkCoord) {
-            var newChunk = CreateChunk(chunkCoord);
-            _chunkDict[chunkCoord] = newChunk;
-
-            return newChunk;
+        public bool RegisterChunk(Vector3Int chunkCoord, IChunk chunk) {
+            if (chunk == null)
+                return false;
+            if (_chunkDict.TryAdd(chunkCoord, chunk))
+                return true;
+            return false;
         }
 
-        private IChunk CreateChunk(Vector3Int chunkCoord) {
+        public T CreateChunk<T>(Vector3Int chunkCoord, GameObject chunkPrefab) where T : class, IChunk {
             ref var config = ref ConfigBlob.Value;
 
-            var localChunkPos = (Vector3)chunkCoord * (config.ChunkSize * _ownerAsIVolume.Config.resolution);
+            var localChunkPos = (Vector3)chunkCoord * (config.ChunkSize * config.Resolution);
             var worldChunkPos = Transform.TransformPoint(localChunkPos);
 
             var chunkObj = Object.Instantiate(
-                _chunkPrefab,
+                chunkPrefab,
                 worldChunkPos,
                 Transform.rotation,
                 Transform
             );
 
-            if (!chunkObj.TryGetComponent(out IChunk chunk)) return null;
+            if (!chunkObj.TryGetComponent(out T chunk)) {
+                Debug.LogError($"Chunk prefab missing component of type {typeof(T).Name}");
+                Object.Destroy(chunkObj);  // Clean up failed instantiation
+                return null;
+            }
 
-            chunk.VoxelChunk.SetCoordAndFields(chunkCoord);
+            chunk.SetCoordAndFields(chunkCoord);
 
             return chunk;
         }
 
         public void UpdateVolumeOrigin() {
-            foreach (var chunk in _chunkDict.Values) chunk.VoxelChunk.OnVolumeMovement();
+            foreach (var chunk in _chunkDict.Values) 
+                chunk.OnVolumeMovement();
         }
 
         public static Vector2[] ValidateLodRanges(Vector2[] lodRanges, VoxelVolumeConfig config) {
@@ -155,7 +135,21 @@ namespace Spellbound.MarchingCubes {
 
             return lodRanges;
         }
-
+        
+        public bool IntersectsVolume(Bounds voxelBounds) => _bounds.Intersects(voxelBounds);
+        
+        private Bounds CalculateVolumeBounds() {
+            ref var config = ref ConfigBlob.Value;
+            
+            var sizeInVoxels = new Vector3(
+                config.SizeInChunks.x * config.ChunkSize,
+                config.SizeInChunks.y * config.ChunkSize,
+                config.SizeInChunks.z * config.ChunkSize
+            );
+            
+            var center = Vector3.zero - config.Offset;
+            return new Bounds(center, sizeInVoxels);
+        }
         public void Dispose() {
             if (ConfigBlob.IsCreated)
                 ConfigBlob.Dispose();

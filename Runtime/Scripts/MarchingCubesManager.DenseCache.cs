@@ -13,7 +13,7 @@ namespace Spellbound.MarchingCubes {
 
         public NativeArray<VoxelData> GetOrUnpackVoxelArray(
             int dataSizeKey,
-            VoxChunk chunk,
+            BaseChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
                 Debug.LogError(
@@ -22,7 +22,7 @@ namespace Spellbound.MarchingCubes {
                 return new DenseVoxelData().DenseVoxelArray;
             }
 
-            ref var config = ref chunk.ParentVolume.VoxelVolume.ConfigBlob.Value;
+            ref var config = ref chunk.ParentVolume.ConfigBlob.Value;
 
             if (denseVoxelData.IsArrayInUse) {
                 if (chunk != denseVoxelData.CurrentChunk) {
@@ -52,7 +52,7 @@ namespace Spellbound.MarchingCubes {
             denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, config.DensityThreshold);
 
             var unpackJob = new SparseToDenseVoxelDataJob {
-                ConfigBlob = chunk.ParentVolume.VoxelVolume.ConfigBlob,
+                ConfigBlob = chunk.ParentVolume.ConfigBlob,
                 Voxels = denseVoxelData.DenseVoxelArray,
                 SparseVoxels = sparseData,
                 DensityRange = denseVoxelData.DensityRange
@@ -112,10 +112,10 @@ namespace Spellbound.MarchingCubes {
             public NativeArray<DensityRange> DensityRange;
             public Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
             public bool IsArrayInUse;
-            public VoxChunk CurrentChunk;
+            public BaseChunk CurrentChunk;
 
             public DenseVoxelData(
-                int chunkSize, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
+                int chunkSize, BaseChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
                 var cs = chunkSize + 3;
                 DenseVoxelArray = new NativeArray<VoxelData>(cs * cs * cs, allocator);
                 DensityRange = new NativeArray<DensityRange>(1, allocator);

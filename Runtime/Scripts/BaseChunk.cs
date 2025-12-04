@@ -8,16 +8,16 @@ using Unity.Jobs;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public class VoxChunk : IDisposable {
+    public class BaseChunk : IDisposable {
         private Vector3Int _chunkCoord;
         private BoundsInt _bounds;
         private NativeList<SparseVoxelData> _sparseVoxels;
         private Dictionary<int, VoxelEdit> _voxelEdits;
         private OctreeNode _rootNode;
         private DensityRange _densityRange;
-        private MarchingCubesManager _mcManager;
+        private readonly MarchingCubesManager _mcManager;
         private IVolume _parentVolume;
-        private MonoBehaviour _owner;
+        private readonly MonoBehaviour _owner;
         private VoxelOverrides _voxelOverrides;
 
         public Vector3Int ChunkCoord => _chunkCoord;
@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
 
         public IVolume ParentVolume => _parentVolume;
 
-        public VoxChunk(MonoBehaviour owner) {
+        public BaseChunk(MonoBehaviour owner) {
             _owner = owner;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             _voxelOverrides = new VoxelOverrides();
@@ -36,86 +36,153 @@ namespace Spellbound.MarchingCubes {
 
         public void SetCoordAndFields(Vector3Int coord) {
             _parentVolume = _owner.GetComponentInParent<IVolume>();
-            ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
+            ref var config = ref ParentVolume.ConfigBlob.Value;
             _chunkCoord = coord;
             var voxelMin = coord * config.ChunkSize;
             _bounds = new BoundsInt(voxelMin, config.ChunkSize * Vector3Int.one);
             _owner.gameObject.name = coord.ToString();
         }
 
-        public void SetOverrides(IEnumerable<(Axis axis, int slice, VoxelData voxel)> overrides) {
-            foreach (var (axis, slice, voxel) in overrides) _voxelOverrides.AddOverride(axis, slice, voxel);
+        public void SetOverrides(VoxelOverrides overrides) {
+            _voxelOverrides =  overrides;
+        }
+        
+        public bool HasOverrides() {
+            if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
+                return false;
+
+            return true;
         }
 
-        private void ValidateVoxels() {
-            if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides) return;
-
-            ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
-            var voxelArray = GetVoxelDataArray();
-
+        private bool ApplyOverrides(NativeArray<VoxelData> voxels) {
+            ref var config = ref ParentVolume.ConfigBlob.Value;
             _voxelOverrides.CopyToNativeHashMaps(
                 out var xOverrides,
                 out var yOverrides,
                 out var zOverrides,
-                Allocator.TempJob
+                out var pointOverrides
             );
 
-            var hasOverridesArray = new NativeArray<int>(1, Allocator.TempJob);
-            hasOverridesArray[0] = 0;
+            var hasOverridesArray = new NativeArray<bool>(1, Allocator.TempJob);
+            hasOverridesArray[0] = false;
 
             var job = new ApplyBoundaryOverridesJob {
-                voxelArray = voxelArray,
+                voxelArray = voxels,
                 xOverrides = xOverrides,
                 yOverrides = yOverrides,
                 zOverrides = zOverrides,
+                pointOverrides = pointOverrides,
                 chunkDataAreaSize = config.ChunkDataAreaSize,
                 chunkDataWidthSize = config.ChunkDataWidthSize,
                 hasOverrides = hasOverridesArray
             };
 
-            var jobHandle = job.Schedule(voxelArray.Length, 64);
+            var jobHandle = job.Schedule(voxels.Length, 64);
             jobHandle.Complete();
 
-            var hasOverriddenVoxels = hasOverridesArray[0] == 1;
+            var hasOverriddenVoxels = hasOverridesArray[0];
 
             xOverrides.Dispose();
             yOverrides.Dispose();
             zOverrides.Dispose();
+            pointOverrides.Dispose();
             hasOverridesArray.Dispose();
-
-            if (hasOverriddenVoxels) _mcManager.PackVoxelArray(config.ChunkSize);
-
-            _mcManager.ReleaseVoxelArray(config.ChunkSize);
+            
+            return hasOverriddenVoxels;
         }
 
-        public void InitializeVoxels(NativeList<SparseVoxelData> voxels) {
+        private bool ValidateVoxels(NativeArray<VoxelData> voxels = default) {
+            if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
+                return false;
+
+            ref var config = ref ParentVolume.ConfigBlob.Value;
+
+            var hasCheckedOutDenseArray = false;
+
+            if (voxels == default) {
+                voxels = GetVoxelDataArray();
+                hasCheckedOutDenseArray = true;
+            }
+                
+
+            _voxelOverrides.CopyToNativeHashMaps(
+                out var xOverrides,
+                out var yOverrides,
+                out var zOverrides,
+                out var pointOverrides
+            );
+
+            var hasOverridesArray = new NativeArray<bool>(1, Allocator.TempJob);
+            hasOverridesArray[0] = false;
+
+            var job = new ApplyBoundaryOverridesJob {
+                voxelArray = voxels,
+                xOverrides = xOverrides,
+                yOverrides = yOverrides,
+                zOverrides = zOverrides,
+                pointOverrides = pointOverrides,
+                chunkDataAreaSize = config.ChunkDataAreaSize,
+                chunkDataWidthSize = config.ChunkDataWidthSize,
+                hasOverrides = hasOverridesArray
+            };
+
+            var jobHandle = job.Schedule(voxels.Length, 64);
+            jobHandle.Complete();
+
+            var hasOverriddenVoxels = hasOverridesArray[0];
+
+            xOverrides.Dispose();
+            yOverrides.Dispose();
+            zOverrides.Dispose();
+            pointOverrides.Dispose();
+            hasOverridesArray.Dispose();
+            
+            if (hasCheckedOutDenseArray)
+                _mcManager.ReleaseVoxelArray(config.ChunkSize);
+
+            return hasOverriddenVoxels;
+        }
+
+        public void InitializeVoxels(NativeArray<VoxelData> voxels) {
             if (_sparseVoxels.IsCreated) {
                 Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
-
                 return;
             }
 
             if (!voxels.IsCreated) {
                 Debug.LogError(
-                    $"_sparseVoxels being initialized with a List is already created for this chunkCoord {_chunkCoord}.");
+                    $"_sparseVoxels being initialized with native array that has not been created for chunkCoord {_chunkCoord}.");
 
                 return;
             }
 
-            _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
-            _sparseVoxels.AddRange(voxels.AsArray());
-            ValidateVoxels();
+            if (HasOverrides())
+                ApplyOverrides(voxels);
+            
+            _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
 
+           new DenseToSparseVoxelDataJob {
+               Voxels = voxels,
+                SparseVoxels = _sparseVoxels,
+            }.Schedule().Complete();
+           
             _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
-                _parentVolume.VoxelVolume.ConfigBlob.Value.DensityThreshold);
+                _parentVolume.ConfigBlob.Value.DensityThreshold);
 
-            _rootNode = new OctreeNode(Vector3Int.zero, _parentVolume.VoxelVolume.ConfigBlob.Value.LevelsOfDetail, this,
+            _rootNode = new OctreeNode(Vector3Int.zero, _parentVolume.ConfigBlob.Value.LevelsOfDetail, this,
                 _parentVolume);
         }
 
         public bool ApplyVoxelEdits(
             List<VoxelEdit> voxelEdits, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
-            ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
+
+            if (!_sparseVoxels.IsCreated) {
+                editBounds = existingEditBounds;
+                return false;
+            }
+                
+            
+            ref var config = ref ParentVolume.ConfigBlob.Value;
             var voxelArray = GetVoxelDataArray();
 
             var hasEdits = false;
@@ -126,10 +193,12 @@ namespace Spellbound.MarchingCubes {
 
                 McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
-
-                if (_voxelOverrides.HasOverride(x, y, z)) continue;
-
                 var voxelPos = new Vector3Int(x, y, z);
+                
+                if (_voxelOverrides.HasOverride(voxelPos)) 
+                    continue;
+
+                
                 var existingVoxel = voxelArray[index];
 
                 if (voxelEdit.density == existingVoxel.Density &&
@@ -162,7 +231,7 @@ namespace Spellbound.MarchingCubes {
         public void OnVolumeMovement() => RootNode?.ValidateMaterial();
 
         public NativeArray<VoxelData> GetVoxelDataArray() =>
-                _mcManager.GetOrUnpackVoxelArray(ParentVolume.VoxelVolume.ConfigBlob.Value.ChunkSize, this,
+                _mcManager.GetOrUnpackVoxelArray(ParentVolume.ConfigBlob.Value.ChunkSize, this,
                     _sparseVoxels);
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
@@ -175,7 +244,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3Int pos, int index) {
-            ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
+            ref var config = ref ParentVolume.ConfigBlob.Value;
 
             var worldVoxelPos = pos + _chunkCoord * config.ChunkSize;
 
@@ -186,24 +255,24 @@ namespace Spellbound.MarchingCubes {
             }
 
             var neighborCoord = McStaticHelper.GetNeighborCoord(index, _chunkCoord);
-            var neighborChunk = _parentVolume.VoxelVolume.GetChunkByCoord(neighborCoord);
+            var neighborChunk = _parentVolume.GetChunkByCoord(neighborCoord);
 
             if (neighborChunk == null)
                 return;
 
             var neighborLocalPos = worldVoxelPos - neighborCoord * config.ChunkSize;
-            neighborChunk.VoxelChunk.BroadcastNewLeafAcrossChunks(newLeaf, neighborLocalPos, index);
+            neighborChunk.BroadcastNewLeafAcrossChunks(newLeaf, neighborLocalPos, index);
         }
 
         public VoxelData GetVoxelData(int index) {
-            ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
+            ref var config = ref ParentVolume.ConfigBlob.Value;
             var sparseIndex = McStaticHelper.BinarySearchVoxelData(index, config.ChunkDataVolumeSize, _sparseVoxels);
 
             return _sparseVoxels[sparseIndex].Voxel;
         }
 
         public VoxelData GetVoxelDataFromVoxelPosition(Vector3Int position) {
-            ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
+            ref var config = ref ParentVolume.ConfigBlob.Value;
             var chunkSpacePosition = position - _chunkCoord * config.ChunkSize;
 
             var index = McStaticHelper.Coord3DToIndex(
@@ -225,7 +294,7 @@ namespace Spellbound.MarchingCubes {
 
             _rootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentVolume.VoxelVolume.ConfigBlob.Value.ChunkSize);
+            _mcManager.ReleaseVoxelArray(ParentVolume.ConfigBlob.Value.ChunkSize);
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
@@ -235,7 +304,7 @@ namespace Spellbound.MarchingCubes {
             var playerPositionChunkSpace = playerPosition - _bounds.min;
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentVolume.VoxelVolume.ConfigBlob.Value.ChunkSize);
+            _mcManager.ReleaseVoxelArray(ParentVolume.ConfigBlob.Value.ChunkSize);
         }
 
         public void Dispose() {
