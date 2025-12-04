@@ -3,7 +3,7 @@
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public class CustomVolume : BasicVolume {
+    public class CustomVolume : SimpleVolume {
         protected override void Awake() {
             base.Awake();
             Debug.Log("I overrode Awake");

@@ -5,28 +5,32 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public interface IVolume {
+        
+        BaseVolume BaseVolume { get; }
         Vector2[] ViewDistanceLodRanges { get; }
         
-        Transform VolumeTransform { get; }
-
         Transform LodTarget { get; }
         
         bool IsMoving { get; set; }
         
-        BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; }
-
-        Awaitable ValidateChunkLods();
-
-        bool IntersectsVolume(Bounds voxelBounds);
+        bool IsPrimaryTerrain  { get; set; }
         
-        public Vector3Int WorldToVoxelSpace(Vector3 worldPosition);
+        Transform VolumeTransform => BaseVolume.Transform;
+        
+        BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob => BaseVolume.ConfigBlob;
+        
+        bool IntersectsVolume(Bounds voxelBounds) => BaseVolume.IntersectsVolume(voxelBounds);
+        
+        async Awaitable ValidateChunkLods() => await BaseVolume.ValidateChunkLodsAsync();
+        
+        Vector3Int WorldToVoxelSpace(Vector3 worldPosition) => BaseVolume.WorldToVoxelSpace(worldPosition);
 
-        public IChunk GetChunkByCoord(Vector3Int coord);
+        IChunk GetChunkByCoord(Vector3Int coord) => BaseVolume.GetChunkByCoord(coord);
 
-        public IChunk GetChunkByWorldPosition(Vector3 worldPos);
+        IChunk GetChunkByWorldPosition(Vector3 worldPos) => BaseVolume.GetChunkByWorldPosition(worldPos);
 
-        public IChunk GetChunkByVoxelPosition(Vector3Int voxelPos);
+        IChunk GetChunkByVoxelPosition(Vector3Int voxelPos) => BaseVolume.GetChunkByVoxelPosition(voxelPos);
 
-        public Vector3Int GetCoordByVoxelPosition(Vector3Int voxelPos);
+        Vector3Int GetCoordByVoxelPosition(Vector3Int voxelPos) => BaseVolume.GetCoordByVoxelPosition(voxelPos);
     }
 }

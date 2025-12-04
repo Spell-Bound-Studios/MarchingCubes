@@ -161,8 +161,10 @@ namespace Spellbound.MarchingCubes {
             foreach (var iVolume in _voxelVolumes) {
                 var result = terraformAction(iVolume);
                 
+                
                 if (!iVolume.IntersectsVolume(result.bounds))
                     continue;
+                    
                 
                 DistributeVoxelEdits(iVolume, result.edits, removableMatTypes);
             }
@@ -245,7 +247,7 @@ namespace Spellbound.MarchingCubes {
 
         public VoxelData QueryVoxel(Vector3 position) {
             foreach (var voxelVolume in _voxelVolumes) {
-                if (!voxelVolume.IntersectsVolume(new Bounds()))
+                if (!voxelVolume.IsPrimaryTerrain)
                     continue;
 
                 var chunk = voxelVolume.GetChunkByWorldPosition(position);
