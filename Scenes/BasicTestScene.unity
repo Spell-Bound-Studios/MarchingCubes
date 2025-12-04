@@ -207,7 +207,7 @@ Transform:
   m_GameObject: {fileID: 244267661}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 20, z: -10}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -675,14 +675,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 70c2bce39f6d1664e83d1a014775da2a, type: 2}
-  dataFactory: {fileID: 11400000, guid: 927cd5ce8abf9ed49afeefed410b515c, type: 2}
+  dataFactory: {fileID: 11400000, guid: c29c31b6832918749a57117ef8cc521f, type: 2}
   boundaryOverrides: {fileID: 11400000, guid: 418912af9029cc44ab70960ba4cd7239, type: 2}
   isMoving: 1
+  isPrimaryTerrain: 0
   viewDistanceLodRanges:
-  - {x: 0, y: 26.6}
-  - {x: 26.6, y: 58.6}
-  - {x: 58.6, y: 122.6}
-  - {x: 122.6, y: 250.6}
+  - {x: 0, y: 32}
+  - {x: 32, y: 96}
+  - {x: 96, y: 224}
+  - {x: 224, y: 480}
   chunkPrefab: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
 --- !u!1 &1629483460
 GameObject:

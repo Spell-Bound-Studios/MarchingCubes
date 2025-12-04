@@ -147,7 +147,7 @@ namespace Spellbound.MarchingCubes {
                 config.SizeInChunks.z * config.ChunkSize
             );
             
-            var center = Vector3.zero;
+            var center = Vector3.zero - config.Offset;
             return new Bounds(center, sizeInVoxels);
         }
         public void Dispose() {
