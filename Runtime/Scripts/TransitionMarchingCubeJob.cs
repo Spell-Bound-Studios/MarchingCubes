@@ -63,6 +63,10 @@ namespace Spellbound.MarchingCubes {
             var transitionVertexIndices = new NativeArray<int>(36, Allocator.Temp);
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
+            // Material blending structures - allocated once and reused for all vertices
+            var uniqueMaterials = new NativeList<byte>(14, Allocator.Temp);
+            var materialWeights = new NativeList<float>(14, Allocator.Temp);
+
             for (var y = 0; y < config.CubesMarchedPerOctreeLeaf; y++) {
                 for (var x = 0; x < config.CubesMarchedPerOctreeLeaf; x++) {
                     for (var i = 0; i < 13; i++) {
@@ -201,7 +205,7 @@ namespace Spellbound.MarchingCubes {
 
                             vertex = math.lerp(corner0Copy, corner1Copy, t);
 
-                            GetNormalAndColor(corner0Copy, corner1Copy, t, out var n, out var c);
+                            GetNormalAndColor(corner0Copy, corner1Copy, t, ref uniqueMaterials, ref materialWeights, out var n, out var c);
                             normal = n;
                             color = c;
                             var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
@@ -262,9 +266,13 @@ namespace Spellbound.MarchingCubes {
 
                 (transitionCurrentCache, transitionPreviousCache) = (transitionPreviousCache, transitionCurrentCache);
             }
+            
+            // Dispose reused structures
+            uniqueMaterials.Dispose();
+            materialWeights.Dispose();
         }
 
-        private void GetNormalAndColor(int3 corner0, int3 corner1, float t, out float3 normal, out Color32 color) {
+        private void GetNormalAndColor(int3 corner0, int3 corner1, float t, ref NativeList<byte> uniqueMaterials, ref NativeList<float> materialWeights, out float3 normal, out Color32 color) {
             ref var config = ref ConfigBlob.Value;
 
             var vertPosX0 = corner0.x;
@@ -345,63 +353,28 @@ namespace Spellbound.MarchingCubes {
             normal = math.lerp(normal0, normal1, t);
             normal = math.normalize(normal);
 
-            // More efficient version without unsafe code
-            var uniqueMaterials = new NativeList<byte>(14, Allocator.Temp);
-            var materialWeights = new NativeList<float>(14, Allocator.Temp);
+            // Clear lists for reuse
+            uniqueMaterials.Clear();
+            materialWeights.Clear();
 
             var weight0 = 1f - t;
 
-            // Create array of voxels to process
-            var voxelsToProcess = new NativeArray<VoxelData>(14, Allocator.Temp);
+            // Add all voxel contributions
+            AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0101, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0121, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0110, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0112, weight0, ref uniqueMaterials, ref materialWeights);
 
-            voxelsToProcess[0] = voxel0;
-            voxelsToProcess[1] = v0011;
-            voxelsToProcess[2] = v0211;
-            voxelsToProcess[3] = v0101;
-            voxelsToProcess[4] = v0121;
-            voxelsToProcess[5] = v0110;
-            voxelsToProcess[6] = v0112;
-
-            voxelsToProcess[7] = voxel1;
-            voxelsToProcess[8] = v1011;
-            voxelsToProcess[9] = v1211;
-            voxelsToProcess[10] = v1101;
-            voxelsToProcess[11] = v1121;
-            voxelsToProcess[12] = v1110;
-            voxelsToProcess[13] = v1112;
-
-            for (var v = 0; v < 14; v++) {
-                var voxel = voxelsToProcess[v];
-
-                // Skip voxels with zero density (air)
-                if (voxel.Density == 0) continue;
-
-                var matIndex = voxel.MaterialIndex;
-                var baseWeight = v < 7 ? weight0 : t;
-
-                // Weight by density (normalized to 0-1 range, assuming density is 0-255)
-                var densityWeight = voxel.Density / 255f;
-                var weight = baseWeight * densityWeight;
-
-                var existingIndex = -1;
-
-                for (var k = 0; k < uniqueMaterials.Length; k++) {
-                    if (uniqueMaterials[k] == matIndex) {
-                        existingIndex = k;
-
-                        break;
-                    }
-                }
-
-                if (existingIndex >= 0)
-                    materialWeights[existingIndex] += weight;
-                else {
-                    uniqueMaterials.Add(matIndex);
-                    materialWeights.Add(weight);
-                }
-            }
-
-            voxelsToProcess.Dispose();
+            AddMaterialWeight(voxel1, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1011, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1211, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1101, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1121, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights);
 
             // Find top 2 materials
             byte matA = 0;
@@ -422,9 +395,6 @@ namespace Spellbound.MarchingCubes {
                 }
             }
 
-            uniqueMaterials.Dispose();
-            materialWeights.Dispose();
-
             color = new Color32((byte)matA, (byte)matB, (byte)matA, 0);
         }
 
@@ -432,6 +402,37 @@ namespace Spellbound.MarchingCubes {
             var area = math.length(math.cross(b - a, c - a));
 
             return area < 1e-5f; // Tweak epsilon if needed
+        }
+
+        [BurstCompile]
+        private static void AddMaterialWeight(
+            in VoxelData voxel,
+            float baseWeight, 
+            ref NativeList<byte> uniqueMaterials, 
+            ref NativeList<float> materialWeights) {
+    
+            // Skip voxels with zero density (air)
+            if (voxel.Density == 0) return;
+
+            var matIndex = voxel.MaterialIndex;
+            var densityWeight = voxel.Density / 255f;
+            var weight = baseWeight * densityWeight;
+
+            // Check if material already exists
+            var existingIndex = -1;
+            for (var k = 0; k < uniqueMaterials.Length; k++) {
+                if (uniqueMaterials[k] == matIndex) {
+                    existingIndex = k;
+                    break;
+                }
+            }
+
+            if (existingIndex >= 0)
+                materialWeights[existingIndex] += weight;
+            else {
+                uniqueMaterials.Add(matIndex);
+                materialWeights.Add(weight);
+            }
         }
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
