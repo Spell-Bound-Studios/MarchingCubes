@@ -27,7 +27,7 @@ namespace Spellbound.MarchingCubes {
         private NativeArray<int2> _transitionRanges;
         private Vector3Int _localPosition;
         private readonly int _lod;
-        private BoundsInt _boundsVoxel; 
+        private BoundsInt _boundsVoxel;
         private readonly IChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
         private readonly IVolume _parentVolume;
@@ -167,6 +167,7 @@ namespace Spellbound.MarchingCubes {
             if (a.max.x < b.min.x || a.min.x > b.max.x) return false;
             if (a.max.y < b.min.y || a.min.y > b.max.y) return false;
             if (a.max.z < b.min.z || a.min.z > b.max.z) return false;
+
             return true;
         }
 
@@ -433,12 +434,11 @@ namespace Spellbound.MarchingCubes {
         }
 
         private Vector3Int[] GetNeighborPositions() {
-            if (_cachedNeighborPositions == null) {
-                _cachedNeighborPositions = SetNeighborPositions(_boundsVoxel);
-            }
+            if (_cachedNeighborPositions == null) _cachedNeighborPositions = SetNeighborPositions(_boundsVoxel);
+
             return _cachedNeighborPositions;
         }
-        
+
         private Vector3Int[] SetNeighborPositions(BoundsInt boundsVoxel) {
             var center = (boundsVoxel.min + boundsVoxel.max) / 2;
 

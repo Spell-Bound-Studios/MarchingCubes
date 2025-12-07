@@ -10,8 +10,6 @@ namespace Spellbound.MarchingCubes {
             Vector3 worldPosition,
             float radius,
             int delta) {
-            
-            // Convert world position to volume-local space
             var voxelCenter = iVoxelVolume.WorldToVoxelSpace(worldPosition);
 
             var rawVoxelEdits = new List<RawVoxelEdit>();
@@ -23,14 +21,12 @@ namespace Spellbound.MarchingCubes {
             for (var x = -r; x <= r; x++) {
                 for (var y = -r; y <= r; y++) {
                     for (var z = -r; z <= r; z++) {
-                        // Voxel position in volume-relative voxel space
                         var voxelPos = new Vector3Int(
                             Mathf.RoundToInt(voxelCenter.x) + x,
                             Mathf.RoundToInt(voxelCenter.y) + y,
                             Mathf.RoundToInt(voxelCenter.z) + z
                         );
 
-                        // Distance from exact center (not rounded)
                         var offset = new Vector3(
                             voxelPos.x - voxelCenter.x,
                             voxelPos.y - voxelCenter.y,
@@ -52,7 +48,6 @@ namespace Spellbound.MarchingCubes {
                 }
             }
 
-            // Create bounds in world space centered on the world position
             var voxelBounds = new Bounds(voxelCenter, Vector3.one * radiusVoxels * 2f);
 
             return (rawVoxelEdits, voxelBounds);
@@ -64,8 +59,6 @@ namespace Spellbound.MarchingCubes {
             byte addedMaterial,
             float radius,
             int delta) {
-            
-            // Convert world position to volume-local space
             var voxelCenter = iVoxelVolume.WorldToVoxelSpace(worldPosition);
 
             var rawVoxelEdits = new List<RawVoxelEdit>();
@@ -104,9 +97,8 @@ namespace Spellbound.MarchingCubes {
                 }
             }
 
-            // Create bounds in world space centered on the world position
             var voxelBounds = new Bounds(voxelCenter, Vector3.one * radiusVoxels * 2f);
-            
+
             return (rawVoxelEdits, voxelBounds);
         }
     }

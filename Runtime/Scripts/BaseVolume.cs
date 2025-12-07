@@ -15,7 +15,7 @@ namespace Spellbound.MarchingCubes {
         private Dictionary<Vector3Int, IChunk> _chunkDict = new();
         private Bounds _bounds;
         public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
-        
+
         public Transform Transform => _owner.transform;
         public Dictionary<Vector3Int, IChunk> ChunkDict => _chunkDict;
 
@@ -84,8 +84,10 @@ namespace Spellbound.MarchingCubes {
         public bool RegisterChunk(Vector3Int chunkCoord, IChunk chunk) {
             if (chunk == null)
                 return false;
+
             if (_chunkDict.TryAdd(chunkCoord, chunk))
                 return true;
+
             return false;
         }
 
@@ -104,7 +106,8 @@ namespace Spellbound.MarchingCubes {
 
             if (!chunkObj.TryGetComponent(out T chunk)) {
                 Debug.LogError($"Chunk prefab missing component of type {typeof(T).Name}");
-                Object.Destroy(chunkObj);  // Clean up failed instantiation
+                Object.Destroy(chunkObj); // Clean up failed instantiation
+
                 return null;
             }
 
@@ -114,7 +117,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void UpdateVolumeOrigin() {
-            foreach (var chunk in _chunkDict.Values) 
+            foreach (var chunk in _chunkDict.Values)
                 chunk.OnVolumeMovement();
         }
 
@@ -135,21 +138,23 @@ namespace Spellbound.MarchingCubes {
 
             return lodRanges;
         }
-        
+
         public bool IntersectsVolume(Bounds voxelBounds) => _bounds.Intersects(voxelBounds);
-        
+
         private Bounds CalculateVolumeBounds() {
             ref var config = ref ConfigBlob.Value;
-            
+
             var sizeInVoxels = new Vector3(
                 config.SizeInChunks.x * config.ChunkSize,
                 config.SizeInChunks.y * config.ChunkSize,
                 config.SizeInChunks.z * config.ChunkSize
             );
-            
+
             var center = Vector3.zero - config.Offset;
+
             return new Bounds(center, sizeInVoxels);
         }
+
         public void Dispose() {
             if (ConfigBlob.IsCreated)
                 ConfigBlob.Dispose();

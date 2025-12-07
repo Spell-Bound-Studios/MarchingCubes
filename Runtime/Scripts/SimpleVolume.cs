@@ -1,10 +1,8 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System;
 using System.Collections;
 using Spellbound.Core;
 using Unity.Collections;
-using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -17,28 +15,31 @@ namespace Spellbound.MarchingCubes {
     /// create a new class instead of inheriting from SimpleVolume.
     /// </summary>
     public class SimpleVolume : MonoBehaviour, IVolume {
-        [Header("Volume Settings")]
-        [Tooltip("Config for ChunkSize, VolumeSize, etc")]
-        [SerializeField] protected VoxelVolumeConfig config;
-        [Tooltip("Preset for what voxel data is generated in the volume")]
-        [SerializeField] protected DataFactory dataFactory;
-        [Tooltip("Rules for immutable voxels on the external faces of the volume")]
-        [SerializeField] protected BoundaryOverrides boundaryOverrides;
-        [Tooltip("Initial State for if the volume is moving. " +
-                 "If true it updates the origin of the triplanar material shader")]
-        [SerializeField] protected bool isMoving = false;
-        [Tooltip("Initial State for if the volume is the Primary Terrain. " +
-                 "Affects whether it can be globally queried or not")]
-        [SerializeField] protected bool isPrimaryTerrain = false;
-        [Tooltip("View Distances to each Level of Detail. Enforces a floor to prohibit abrupt changes")]
-        [SerializeField] protected Vector2[] viewDistanceLodRanges;
+        [Header("Volume Settings"), Tooltip("Config for ChunkSize, VolumeSize, etc"), SerializeField]
+        protected VoxelVolumeConfig config;
 
-        
-        [Tooltip("Prefab for the Chunk the Volume will build itself from. Must Implement IChunk")]
-        
-        [SerializeField] private GameObject chunkPrefab;
+        [Tooltip("Preset for what voxel data is generated in the volume"), SerializeField]
+        protected DataFactory dataFactory;
+
+        [Tooltip("Rules for immutable voxels on the external faces of the volume"), SerializeField]
+        protected BoundaryOverrides boundaryOverrides;
+
+        [Tooltip("Initial State for if the volume is moving. " +
+                 "If true it updates the origin of the triplanar material shader"), SerializeField]
+        protected bool isMoving = false;
+
+        [Tooltip("Initial State for if the volume is the Primary Terrain. " +
+                 "Affects whether it can be globally queried or not"), SerializeField]
+        protected bool isPrimaryTerrain = false;
+
+        [Tooltip("View Distances to each Level of Detail. Enforces a floor to prohibit abrupt changes"), SerializeField]
+        protected Vector2[] viewDistanceLodRanges;
+
+        [Tooltip("Prefab for the Chunk the Volume will build itself from. Must Implement IChunk"), SerializeField]
+        private GameObject chunkPrefab;
+
         private BaseVolume _baseVolume;
-        
+
         public BaseVolume BaseVolume => _baseVolume;
 
 #if UNITY_EDITOR
@@ -66,6 +67,7 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
+
             _baseVolume = new BaseVolume(this, this, config);
         }
 
@@ -75,16 +77,16 @@ namespace Spellbound.MarchingCubes {
         protected virtual void Start() {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager is null.");
+
                 return;
             }
+
             mcManager.RegisterVoxelVolume(this);
             InitializeVolume();
         }
 
-        protected virtual void InitializeVolume() {
-            StartCoroutine(InitializeChunks());
-        }
-        
+        protected virtual void InitializeVolume() => StartCoroutine(InitializeChunks());
+
         /// <summary>
         /// Initializes Chunks one per frame, centered on the Volume's transform
         /// One NativeArray of Voxels is maintained for all the chunks and simply overriden with new data.
@@ -92,7 +94,9 @@ namespace Spellbound.MarchingCubes {
         protected virtual IEnumerator InitializeChunks() {
             var size = _baseVolume.ConfigBlob.Value.SizeInChunks;
             var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
-            var denseVoxels = new NativeArray<VoxelData>(_baseVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
+
+            var denseVoxels =
+                    new NativeArray<VoxelData>(_baseVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
 
             for (var x = 0; x < size.x; x++) {
                 for (var y = 0; y < size.y; y++) {
@@ -100,17 +104,21 @@ namespace Spellbound.MarchingCubes {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
                         dataFactory.FillDataArray(chunkCoord, _baseVolume.ConfigBlob, denseVoxels);
                         var chunk = _baseVolume.CreateChunk<IChunk>(chunkCoord, chunkPrefab);
-                        _baseVolume.RegisterChunk(chunkCoord,  chunk);
+                        _baseVolume.RegisterChunk(chunkCoord, chunk);
+
                         if (boundaryOverrides != null) {
                             var overrides = boundaryOverrides.BuildChunkOverrides(
                                 chunkCoord, _baseVolume.ConfigBlob);
                             chunk.SetOverrides(overrides);
                         }
+
                         chunk.InitializeChunk(denseVoxels);
+
                         yield return null;
                     }
                 }
             }
+
             denseVoxels.Dispose();
         }
 
@@ -122,26 +130,31 @@ namespace Spellbound.MarchingCubes {
         protected virtual void Update() {
             if (!isMoving)
                 return;
+
             _baseVolume.UpdateVolumeOrigin();
         }
 
         /// <summary>
         /// BaseVolume implements IDisposable to dispose it's BlobAssets. 
         /// </summary>
-        protected virtual void OnDestroy() {
-            _baseVolume?.Dispose();
-        }
-        
+        protected virtual void OnDestroy() => _baseVolume?.Dispose();
+
         // IVolume implementations
         public Vector2[] ViewDistanceLodRanges => viewDistanceLodRanges;
-        
+
         public Transform VolumeTransform => transform;
 
         public Transform LodTarget =>
                 Camera.main == null ? FindAnyObjectByType<Camera>().transform : Camera.main.transform;
-        
-        public bool IsMoving { get => isMoving; set => isMoving = value; }
 
-        public bool IsPrimaryTerrain { get => isPrimaryTerrain; set => isPrimaryTerrain = value; }
+        public bool IsMoving {
+            get => isMoving;
+            set => isMoving = value;
+        }
+
+        public bool IsPrimaryTerrain {
+            get => isPrimaryTerrain;
+            set => isPrimaryTerrain = value;
+        }
     }
 }

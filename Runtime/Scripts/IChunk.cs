@@ -20,24 +20,24 @@ namespace Spellbound.MarchingCubes {
         void InitializeChunk(NativeArray<VoxelData> voxels); //polymorphic
 
         void PassVoxelEdits(List<VoxelEdit> newVoxelEdits); //polymorphic
-        
+
         // Default Implementations
         VoxelData GetVoxelData(int index) => BaseChunk.GetVoxelData(index);
 
-        VoxelData GetVoxelDataFromVoxelPosition(Vector3Int position) 
-            => BaseChunk.GetVoxelDataFromVoxelPosition(position);
-        
+        VoxelData GetVoxelDataFromVoxelPosition(Vector3Int position) =>
+                BaseChunk.GetVoxelDataFromVoxelPosition(position);
+
         bool HasVoxelData() => BaseChunk.HasVoxelData();
-        
-        void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3Int pos, int index)
-        => BaseChunk.BroadcastNewLeafAcrossChunks(newLeaf, pos, index);
-        
+
+        void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3Int pos, int index) =>
+                BaseChunk.BroadcastNewLeafAcrossChunks(newLeaf, pos, index);
+
         void ValidateOctreeLods(Vector3 playerPosition) => BaseChunk.ValidateOctreeLods(playerPosition);
-        
+
         void SetCoordAndFields(Vector3Int coord) => BaseChunk.SetCoordAndFields(coord);
-        
+
         void OnVolumeMovement() => BaseChunk.OnVolumeMovement();
-        
+
         void SetOverrides(VoxelOverrides overrides) => BaseChunk.SetOverrides(overrides);
     }
 }

@@ -102,6 +102,7 @@ namespace Spellbound.MarchingCubes {
 
             zOverrides = new NativeHashMap<int, VoxelData>(
                 _zOverrides?.Count ?? 0, allocator);
+
             pointOverrides = new NativeHashMap<int3, VoxelData>(
                 _pointOverrides?.Count ?? 0, allocator);
 
@@ -126,7 +127,6 @@ namespace Spellbound.MarchingCubes {
                     var position = new int3(kvp.Key.x, kvp.Key.y, kvp.Key.z);
                     pointOverrides.Add(position, kvp.Value);
                 }
-                    
             }
         }
     }

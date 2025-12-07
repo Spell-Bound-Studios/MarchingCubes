@@ -20,37 +20,95 @@ namespace Spellbound.MarchingCubes {
 
         public static bool IsInsideTerrain(Vector3 position) {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            var voxelData = mcManager.QueryVoxel(position, out var volume);
 
-            //TODO MAGIC NUMBER
-            return mcManager.QueryVoxel(position).Density >= 128;
+            return voxelData.Density >= volume.ConfigBlob.Value.DensityThreshold;
         }
 
-        // Updated SbVoxel.cs - showing the changed methods
-
-        public static void RemoveSphere(Vector3 position, float radius = 3, int delta = byte.MaxValue) {
+        public static void RemoveSphere(
+            Vector3 position, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found");
+
                 return;
             }
 
-            var diggableMaterials = new List<byte> { 0, 1, 2 };
             mcManager.ExecuteTerraform(
-                volume => TerraformCommands.RemoveSphere(volume, position, 3f, 1),
-                diggableMaterials.ToHashSet()
+                volume => TerraformCommands.RemoveSphere(volume, position, radius, delta),
+                materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet()
+            );
+        }
+
+        public static void RemoveSphere(
+            RaycastHit hit, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null) {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+
+                return;
+            }
+
+            mcManager.ExecuteTerraform(
+                volume => TerraformCommands.RemoveSphere(volume, hit.point, radius, delta),
+                materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet(),
+                hit.collider.GetComponentInParent<IVolume>()
+            );
+        }
+
+        public static void RemoveSphere(
+            Collision collision, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null) {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+
+                return;
+            }
+
+            mcManager.ExecuteTerraform(
+                volume => TerraformCommands.RemoveSphere(volume, collision.GetContact(0).point, radius, delta),
+                materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet(),
+                collision.collider.GetComponentInParent<IVolume>()
             );
         }
 
         [ConsoleUtilityCommand("AddSphere", "Positive terraform with 2 radius")]
-        public static void AddSphere(Vector3 position, IVolume hitVolume, float radius = 2f, int delta = 255) {
+        public static void AddSphere(
+            Vector3 position, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found");
+
                 return;
             }
-    
+
+            mcManager.ExecuteTerraform(volume =>
+                    TerraformCommands.AddSphere(volume, position, materialType, radius, delta)
+            );
+        }
+
+        public static void AddSphere(
+            RaycastHit hit, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue) {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+
+                return;
+            }
+
             mcManager.ExecuteTerraform(
-                volume => TerraformCommands.AddSphere(volume, position, 3, radius, delta),
-                null,
-                hitVolume
+                volume => TerraformCommands.AddSphere(volume, hit.point, materialType, radius, delta),
+                targetVolume: hit.collider.GetComponentInParent<IVolume>()
+            );
+        }
+
+        public static void AddSphere(
+            Collision collision, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue) {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+
+                return;
+            }
+
+            mcManager.ExecuteTerraform(
+                volume => TerraformCommands.AddSphere(volume, collision.GetContact(0).point, materialType, radius,
+                    delta),
+                targetVolume: collision.collider.GetComponentInParent<IVolume>()
             );
         }
     }

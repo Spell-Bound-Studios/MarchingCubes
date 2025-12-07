@@ -24,7 +24,7 @@ namespace Spellbound.MarchingCubes {
 
         public int Lod;
         public int3 Start;
-        
+
         public void Execute() {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
@@ -373,7 +373,7 @@ namespace Spellbound.MarchingCubes {
                 // new "deck" of cached values.
                 (currentCache, previousCache) = (previousCache, currentCache);
             }
-            
+
             // Dispose reused structures
             uniqueMaterials.Dispose();
             materialWeights.Dispose();
@@ -387,11 +387,10 @@ namespace Spellbound.MarchingCubes {
 
         [BurstCompile]
         private static void AddMaterialWeight(
-            in VoxelData voxel,  // Changed from 'VoxelData voxel' to 'in VoxelData voxel'
-            float baseWeight, 
-            ref NativeList<byte> uniqueMaterials, 
+            in VoxelData voxel, // Changed from 'VoxelData voxel' to 'in VoxelData voxel'
+            float baseWeight,
+            ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-    
             // Skip voxels with zero density (air)
             if (voxel.Density == 0) return;
 
@@ -401,9 +400,11 @@ namespace Spellbound.MarchingCubes {
 
             // Check if material already exists
             var existingIndex = -1;
+
             for (var k = 0; k < uniqueMaterials.Length; k++) {
                 if (uniqueMaterials[k] == matIndex) {
                     existingIndex = k;
+
                     break;
                 }
             }

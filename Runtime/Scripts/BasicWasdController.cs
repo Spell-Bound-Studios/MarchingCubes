@@ -1,6 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -14,14 +14,15 @@ namespace Spellbound.MarchingCubes {
 
         private float pitch = 0f;
 
-        private void Start() {
-            Cursor.lockState = CursorLockMode.Locked;
-        }
+        [SerializeField] private List<byte> conditionalDigList = new();
+        [SerializeField] private byte addableMaterial = 3;
+
+        private void Start() => Cursor.lockState = CursorLockMode.Locked;
 
         private void Update() {
             HandleMovement();
 
-            if (Input.GetKey(KeyCode.Alpha1)) 
+            if (Input.GetKey(KeyCode.Alpha1))
                 RaycastTerraformRemove();
             else if (Input.GetKeyDown(KeyCode.Alpha2))
                 RaycastTerraformAdd();
@@ -52,9 +53,8 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    ~0)) {
+                    ~0))
                 SbVoxel.RemoveSphere(hit.point);
-            }
         }
 
         private void RaycastTerraformAdd() {
@@ -63,12 +63,8 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    ~0)) {
-                var ivolume = hit.collider.GetComponentInParent<IVolume>();
-                if (ivolume != null)
-                    SbVoxel.AddSphere(hit.point, hit.collider.GetComponentInParent<IVolume>());
-            }
-                
+                    ~0))
+                SbVoxel.AddSphere(hit, 3, byte.MaxValue, addableMaterial);
         }
 
         private void RaycastTerraformRemoveAll() {
@@ -78,7 +74,7 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                SbVoxel.RemoveSphere(hit.point, 3f, byte.MaxValue);
+                SbVoxel.RemoveSphere(hit.point, 3, byte.MaxValue, conditionalDigList);
         }
     }
 }

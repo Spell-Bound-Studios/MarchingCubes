@@ -10,8 +10,6 @@ namespace Spellbound.MarchingCubes {
         public override void FillDataArray(
             Vector3Int chunkCoord,
             BlobAssetReference<VolumeConfigBlobAsset> configBlob,
-            NativeArray<VoxelData> data) {
-            
-        }
+            NativeArray<VoxelData> data) { }
     }
 }

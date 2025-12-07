@@ -24,8 +24,7 @@ namespace Spellbound.MarchingCubes {
 
             _pendingMarchJobData[node] = new MarchJobData {
                 Vertices = vertices,
-                Triangles = triangles,
-                
+                Triangles = triangles
             };
 
             _nodeToChunkCoord[node] = chunkCoord;

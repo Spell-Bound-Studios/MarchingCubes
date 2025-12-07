@@ -35,15 +35,14 @@ namespace Spellbound.MarchingCubes {
             config.Resolution = voxelVolumeConfig.resolution;
             config.SizeInChunks = voxelVolumeConfig.sizeInChunks;
             var chunkWorldSize = config.ChunkSize * config.Resolution;
+
             config.Offset = new Vector3Int(
                 config.SizeInChunks.x % 2 == 0 ? -1 : -(1 + config.ChunkSize / 2),
                 config.SizeInChunks.y % 2 == 0 ? -1 : -(1 + config.ChunkSize / 2),
                 config.SizeInChunks.z % 2 == 0 ? -1 : -(1 + config.ChunkSize / 2)
             );
 
-            if (!voxelVolumeConfig.isFiniteSize) {
-                config.Offset = new Vector3Int(-0, -0, -0);
-            }
+            if (!voxelVolumeConfig.isFiniteSize) config.Offset = new Vector3Int(-0, -0, -0);
 
             config.OffsetBurst = new int3(config.Offset.x, config.Offset.y, config.Offset.z);
             var result = builder.CreateBlobAssetReference<VolumeConfigBlobAsset>(Allocator.Persistent);
