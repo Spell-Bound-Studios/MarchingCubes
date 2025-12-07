@@ -53,7 +53,7 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     ~0)) {
-                SbTerrain.RemoveSphere(hit.point);
+                SbVoxel.RemoveSphere(hit.point);
             }
         }
 
@@ -66,7 +66,7 @@ namespace Spellbound.MarchingCubes {
                     ~0)) {
                 var ivolume = hit.collider.GetComponentInParent<IVolume>();
                 if (ivolume != null)
-                    SbTerrain.AddSphere(hit.point, hit.collider.GetComponentInParent<IVolume>());
+                    SbVoxel.AddSphere(hit.point, hit.collider.GetComponentInParent<IVolume>());
             }
                 
         }
@@ -78,7 +78,7 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                SbTerrain.RemoveSphere(hit.point, 3f, byte.MaxValue);
+                SbVoxel.RemoveSphere(hit.point, 3f, byte.MaxValue);
         }
     }
 }
