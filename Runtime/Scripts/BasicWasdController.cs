@@ -35,7 +35,7 @@ namespace Spellbound.MarchingCubes {
             var x = Input.GetAxis("Horizontal"); // A/D
             var z = Input.GetAxis("Vertical");   // W/S
             var move = transform.right * x + transform.forward * z;
-            transform.position += move * moveSpeed * Time.deltaTime;
+            transform.position += move * (moveSpeed * Time.deltaTime);
 
             // --- Mouse look ---
             var mouseX = Input.GetAxis("Mouse X") * lookSpeed;
