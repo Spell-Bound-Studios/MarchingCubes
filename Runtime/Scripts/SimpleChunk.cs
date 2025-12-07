@@ -14,9 +14,8 @@ namespace Spellbound.MarchingCubes {
         public void InitializeChunk(NativeArray<VoxelData> voxels) => _baseChunk.InitializeVoxels(voxels);
 
         public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
-            if (_baseChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds)) {
+            if (_baseChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds))
                 _baseChunk.ValidateOctreeEdits(editBounds);
-            }
         }
 
         private void OnDestroy() => _baseChunk.Dispose();

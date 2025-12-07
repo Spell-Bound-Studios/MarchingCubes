@@ -205,7 +205,8 @@ namespace Spellbound.MarchingCubes {
 
                             vertex = math.lerp(corner0Copy, corner1Copy, t);
 
-                            GetNormalAndColor(corner0Copy, corner1Copy, t, ref uniqueMaterials, ref materialWeights, out var n, out var c);
+                            GetNormalAndColor(corner0Copy, corner1Copy, t, ref uniqueMaterials, ref materialWeights,
+                                out var n, out var c);
                             normal = n;
                             color = c;
                             var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
@@ -266,13 +267,15 @@ namespace Spellbound.MarchingCubes {
 
                 (transitionCurrentCache, transitionPreviousCache) = (transitionPreviousCache, transitionCurrentCache);
             }
-            
+
             // Dispose reused structures
             uniqueMaterials.Dispose();
             materialWeights.Dispose();
         }
 
-        private void GetNormalAndColor(int3 corner0, int3 corner1, float t, ref NativeList<byte> uniqueMaterials, ref NativeList<float> materialWeights, out float3 normal, out Color32 color) {
+        private void GetNormalAndColor(
+            int3 corner0, int3 corner1, float t, ref NativeList<byte> uniqueMaterials,
+            ref NativeList<float> materialWeights, out float3 normal, out Color32 color) {
             ref var config = ref ConfigBlob.Value;
 
             var vertPosX0 = corner0.x;
@@ -407,10 +410,9 @@ namespace Spellbound.MarchingCubes {
         [BurstCompile]
         private static void AddMaterialWeight(
             in VoxelData voxel,
-            float baseWeight, 
-            ref NativeList<byte> uniqueMaterials, 
+            float baseWeight,
+            ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-    
             // Skip voxels with zero density (air)
             if (voxel.Density == 0) return;
 
@@ -420,9 +422,11 @@ namespace Spellbound.MarchingCubes {
 
             // Check if material already exists
             var existingIndex = -1;
+
             for (var k = 0; k < uniqueMaterials.Length; k++) {
                 if (uniqueMaterials[k] == matIndex) {
                     existingIndex = k;
+
                     break;
                 }
             }

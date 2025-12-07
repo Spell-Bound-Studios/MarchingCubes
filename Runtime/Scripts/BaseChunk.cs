@@ -45,10 +45,8 @@ namespace Spellbound.MarchingCubes {
             _owner.gameObject.name = coord.ToString();
         }
 
-        public void SetOverrides(VoxelOverrides overrides) {
-            _voxelOverrides =  overrides;
-        }
-        
+        public void SetOverrides(VoxelOverrides overrides) => _voxelOverrides = overrides;
+
         public bool HasOverrides() {
             if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
                 return false;
@@ -58,6 +56,7 @@ namespace Spellbound.MarchingCubes {
 
         private bool ApplyOverrides(NativeArray<VoxelData> voxels) {
             ref var config = ref ParentVolume.ConfigBlob.Value;
+
             _voxelOverrides.CopyToNativeHashMaps(
                 out var xOverrides,
                 out var yOverrides,
@@ -89,7 +88,7 @@ namespace Spellbound.MarchingCubes {
             zOverrides.Dispose();
             pointOverrides.Dispose();
             hasOverridesArray.Dispose();
-            
+
             return hasOverriddenVoxels;
         }
 
@@ -105,7 +104,6 @@ namespace Spellbound.MarchingCubes {
                 voxels = GetVoxelDataArray();
                 hasCheckedOutDenseArray = true;
             }
-                
 
             _voxelOverrides.CopyToNativeHashMaps(
                 out var xOverrides,
@@ -138,7 +136,7 @@ namespace Spellbound.MarchingCubes {
             zOverrides.Dispose();
             pointOverrides.Dispose();
             hasOverridesArray.Dispose();
-            
+
             if (hasCheckedOutDenseArray)
                 _mcManager.ReleaseVoxelArray(config.ChunkSize);
 
@@ -148,6 +146,7 @@ namespace Spellbound.MarchingCubes {
         public void InitializeVoxels(NativeArray<VoxelData> voxels) {
             if (_sparseVoxels.IsCreated) {
                 Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
+
                 return;
             }
 
@@ -160,14 +159,14 @@ namespace Spellbound.MarchingCubes {
 
             if (HasOverrides())
                 ApplyOverrides(voxels);
-            
+
             _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
 
-           new DenseToSparseVoxelDataJob {
-               Voxels = voxels,
-                SparseVoxels = _sparseVoxels,
+            new DenseToSparseVoxelDataJob {
+                Voxels = voxels,
+                SparseVoxels = _sparseVoxels
             }.Schedule().Complete();
-           
+
             _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
                 _parentVolume.ConfigBlob.Value.DensityThreshold);
 
@@ -177,13 +176,12 @@ namespace Spellbound.MarchingCubes {
 
         public bool ApplyVoxelEdits(
             List<VoxelEdit> voxelEdits, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
-
             if (!_sparseVoxels.IsCreated) {
                 editBounds = existingEditBounds;
+
                 return false;
             }
-                
-            
+
             ref var config = ref ParentVolume.ConfigBlob.Value;
             var voxelArray = GetVoxelDataArray();
 
@@ -196,11 +194,10 @@ namespace Spellbound.MarchingCubes {
                 McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
                 var voxelPos = new Vector3Int(x, y, z);
-                
-                if (_voxelOverrides.HasOverride(voxelPos)) 
+
+                if (_voxelOverrides.HasOverride(voxelPos))
                     continue;
 
-                
                 var existingVoxel = voxelArray[index];
 
                 if (voxelEdit.density == existingVoxel.Density &&

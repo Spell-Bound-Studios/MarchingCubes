@@ -43,9 +43,10 @@ namespace Spellbound.MarchingCubes {
             if (_nameToIndex == null) {
                 _nameToIndex = new Dictionary<string, byte>();
 
-                for (var i = 0; i < materials.Count; i++)
+                for (var i = 0; i < materials.Count; i++) {
                     if (!string.IsNullOrEmpty(materials[i].materialName))
                         _nameToIndex[materials[i].materialName] = (byte)i;
+                }
             }
 
             if (_nameToIndex.TryGetValue(materialName, out var index)) return index;
@@ -74,9 +75,10 @@ namespace Spellbound.MarchingCubes {
         /// Get all material names.
         /// </summary>
         public IEnumerable<string> GetAllMaterialNames() {
-            foreach (var mat in materials)
+            foreach (var mat in materials) {
                 if (!string.IsNullOrEmpty(mat.materialName))
                     yield return mat.materialName;
+            }
         }
 
         /// <summary>

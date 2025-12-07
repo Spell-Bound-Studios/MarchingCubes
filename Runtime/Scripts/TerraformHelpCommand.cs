@@ -6,8 +6,8 @@ using Spellbound.Core.Console;
 namespace Spellbound.MarchingCubes {
     /// <summary>
     /// Help command that lists all terraform-related utility commands.
-    /// My intention was to register all commands that are registered under the SbTerrain class... I chose to implement
-    /// it into its own class (TerraformHelpCommand) just in case SbTerrain changes later, or I want to change the way
+    /// My intention was to register all commands that are registered under the SbVoxel class... I chose to implement
+    /// it into its own class (TerraformHelpCommand) just in case SbVoxel changes later, or I want to change the way
     /// the API is accessed at a later date.
     /// </summary>
     [ConsoleCommandClass("terraform", "tf")]
@@ -20,9 +20,9 @@ namespace Spellbound.MarchingCubes {
         /// This is implemented by the ICommand interface and allows us to implement our own logic for this class.
         /// </summary>
         public CommandResult Execute(string[] args) {
-            // Get all commands from SbTerrain class
+            // Get all commands from SbVoxel class
             var commands =
-                    AttributeCommandRegistry.GetUtilityCommandsByClass(typeof(SbTerrain));
+                    AttributeCommandRegistry.GetUtilityCommandsByClass(typeof(SbVoxel));
 
             var sb = new StringBuilder();
 

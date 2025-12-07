@@ -30,6 +30,17 @@ namespace Spellbound.MarchingCubes {
         [SerializeField] private bool useColliders = true;
         public bool UseColliders => useColliders;
 
+        private HashSet<byte> _allMaterials;
+
+        public HashSet<byte> GetAllMaterials() {
+            if (_allMaterials == null) {
+                _allMaterials = new HashSet<byte>();
+                for (var i = 0; i < materialDatabase.materials.Count; ++i) _allMaterials.Add((byte)i);
+            }
+
+            return _allMaterials;
+        }
+
         public event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
@@ -40,15 +51,12 @@ namespace Spellbound.MarchingCubes {
             InitializeVoxelMaterial();
             ValidateAllVolumesLodsAsync();
         }
-        
+
         public async void ValidateAllVolumesLodsAsync() {
             try {
                 while (true) {
-                    foreach (var volume in _voxelVolumes) {
-                        
-                        await volume.ValidateChunkLods();
-                    }
-            
+                    foreach (var volume in _voxelVolumes) await volume.ValidateChunkLods();
+
                     await Awaitable.NextFrameAsync();
                 }
             }
@@ -104,6 +112,7 @@ namespace Spellbound.MarchingCubes {
         public void RegisterVoxelVolume(IVolume volume) {
             _voxelVolumes.Add(volume);
             var chunkSize = volume.ConfigBlob.Value.ChunkSize;
+
             if (!_denseVoxelDataDict.ContainsKey(chunkSize)) {
                 var denseData = new DenseVoxelData(chunkSize);
                 _denseVoxelDataDict.Add(chunkSize, denseData);
@@ -147,7 +156,6 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ExecuteTerraform(
-            
             Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
             HashSet<byte> removableMatTypes = null,
             IVolume targetVolume = null) {
@@ -160,12 +168,10 @@ namespace Spellbound.MarchingCubes {
 
             foreach (var iVolume in _voxelVolumes) {
                 var result = terraformAction(iVolume);
-                
-                
+
                 if (!iVolume.IntersectsVolume(result.bounds))
                     continue;
-                    
-                
+
                 DistributeVoxelEdits(iVolume, result.edits, removableMatTypes);
             }
         }
@@ -245,10 +251,14 @@ namespace Spellbound.MarchingCubes {
             }
         }
 
-        public VoxelData QueryVoxel(Vector3 position) {
+        public VoxelData QueryVoxel(Vector3 position, out IVolume queryvolume) {
+            queryvolume = null;
+
             foreach (var voxelVolume in _voxelVolumes) {
                 if (!voxelVolume.IsPrimaryTerrain)
                     continue;
+
+                queryvolume = voxelVolume;
 
                 var chunk = voxelVolume.GetChunkByWorldPosition(position);
 
