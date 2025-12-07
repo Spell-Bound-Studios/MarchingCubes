@@ -5,9 +5,15 @@ using UnityEngine;
 namespace Spellbound.MarchingCubes {
     [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/VoxelVolumeConfig")]
     public class VoxelVolumeConfig : ScriptableObject {
-        [Range(1, 255)] public byte threshold = 128;
-        [Range(8, 32)] public int cubesPerMarch = 16;
-        [Range(1, 5)] public int levelsOfDetail = 3;
+        [Tooltip("Voxel Fill threshold separating full and empty. 128 is default."), 
+         Range(1, 255)] 
+        public byte threshold = 128;
+        [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance"), 
+         Range(8, 32)] 
+        public int cubesPerMarch = 16;
+        [Tooltip("Max number of L"), 
+         Range(1, 5)] 
+        public int levelsOfDetail = 3;
         [Range(8, 128)] public int maxChunkSize = 128;
         [SerializeField] private int chunkSize;
         public int ChunkSize => chunkSize;
