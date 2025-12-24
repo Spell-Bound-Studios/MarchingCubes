@@ -44,3 +44,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a65e276121a9654ba1308608ccd5de3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dataFactory: {fileID: 11400000, guid: e708ac57d0c413241a51d64ad0ddcaa0, type: 2}
+  boundaryOverrides: {fileID: 11400000, guid: a6555e11e01b7124896ba8db32aefeab, type: 2}

@@ -1,17 +1,46 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System;
 using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public class SimpleChunk : MonoBehaviour, IChunk {
+        [Tooltip("Preset for what voxel data is generated in the volume"), SerializeField]
+        protected DataFactory dataFactory;
+
+        [Tooltip("Rules for immutable voxels on the external faces of the volume"), SerializeField]
+        protected BoundaryOverrides boundaryOverrides;
+        
         private BaseChunk _baseChunk;
         public BaseChunk BaseChunk => _baseChunk;
 
         private void Awake() => _baseChunk = new BaseChunk(this, this);
 
-        public void InitializeChunk(NativeArray<VoxelData> voxels) => _baseChunk.InitializeVoxels(voxels);
+        private void Start() {
+            InitializeChunk();
+        }
+
+        public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
+            _baseChunk.ParentVolume.BaseVolume.RegisterChunk(_baseChunk.ChunkCoord, this);
+            if (boundaryOverrides != null) {
+                var overrides = boundaryOverrides.BuildChunkOverrides(
+                    _baseChunk.ChunkCoord, _baseChunk.ParentVolume.ConfigBlob);
+                _baseChunk.SetOverrides(overrides);
+            }
+
+            if (voxels == default) {
+                voxels = new NativeArray<VoxelData>(_baseChunk.ParentVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
+            }
+            
+            dataFactory.FillDataArray(_baseChunk.ChunkCoord, _baseChunk.ParentVolume.ConfigBlob, voxels);
+            _baseChunk.InitializeVoxels(voxels);
+
+            if (voxels.IsCreated) 
+                voxels.Dispose();
+            
+        }
 
         public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
             if (_baseChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds))

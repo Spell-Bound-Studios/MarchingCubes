@@ -17,13 +17,7 @@ namespace Spellbound.MarchingCubes {
     public class SimpleVolume : MonoBehaviour, IVolume {
         [Header("Volume Settings"), Tooltip("Config for ChunkSize, VolumeSize, etc"), SerializeField]
         protected VoxelVolumeConfig config;
-
-        [Tooltip("Preset for what voxel data is generated in the volume"), SerializeField]
-        protected DataFactory dataFactory;
-
-        [Tooltip("Rules for immutable voxels on the external faces of the volume"), SerializeField]
-        protected BoundaryOverrides boundaryOverrides;
-
+        
         [Tooltip("Initial State for if the volume is moving. " +
                  "If true it updates the origin of the triplanar material shader"), SerializeField]
         protected bool isMoving = false;
@@ -94,32 +88,15 @@ namespace Spellbound.MarchingCubes {
         protected virtual IEnumerator InitializeChunks() {
             var size = _baseVolume.ConfigBlob.Value.SizeInChunks;
             var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
-
-            var denseVoxels =
-                    new NativeArray<VoxelData>(_baseVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
-
             for (var x = 0; x < size.x; x++) {
                 for (var y = 0; y < size.y; y++) {
                     for (var z = 0; z < size.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
-                        dataFactory.FillDataArray(chunkCoord, _baseVolume.ConfigBlob, denseVoxels);
-                        var chunk = _baseVolume.CreateChunk<IChunk>(chunkCoord, chunkPrefab);
-                        _baseVolume.RegisterChunk(chunkCoord, chunk);
-
-                        if (boundaryOverrides != null) {
-                            var overrides = boundaryOverrides.BuildChunkOverrides(
-                                chunkCoord, _baseVolume.ConfigBlob);
-                            chunk.SetOverrides(overrides);
-                        }
-
-                        chunk.InitializeChunk(denseVoxels);
-
+                        _baseVolume.CreateChunk<IChunk>(chunkCoord, chunkPrefab);
                         yield return null;
                     }
                 }
             }
-
-            denseVoxels.Dispose();
         }
 
         /// <summary>

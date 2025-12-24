@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24cf1f274a851c949930b71f1eb56fef, type: 3}
   m_Name: SampleData
   m_EditorClassIdentifier: 
-  shape: 3
-  size: 15
+  shape: 5
+  size: 4
   normalizedSize: 0
   offset: {x: 0, y: 0, z: 0}
   sdfGradientSteepness: 32
-  materialIndex: 2
+  materialIndex: 0
   invertShape: 0

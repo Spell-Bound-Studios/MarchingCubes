@@ -25,11 +25,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _TerrainAlbedoArray:
-        m_Texture: {fileID: -3050717153380821185, guid: dec6bfc242b3a9543bfbac62c71defbc, type: 2}
+        m_Texture: {fileID: 7607137259706398712, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainMetalSmoothArray:
-        m_Texture: {fileID: 116228829634620957, guid: 33403f7a6e851c84aabf5b734f6dfe78, type: 2}
+        m_Texture: {fileID: -7553504391022129567, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainTextureArray:

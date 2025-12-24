@@ -17,7 +17,7 @@ namespace Spellbound.MarchingCubes {
 
         Transform Transform => BaseChunk.Transform;
 
-        void InitializeChunk(NativeArray<VoxelData> voxels); //polymorphic
+        void InitializeChunk(NativeArray<VoxelData> voxels = default); //polymorphic
 
         void PassVoxelEdits(List<VoxelEdit> newVoxelEdits); //polymorphic
 
